@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Delete account · Smart Wardrobe OS{% endblock %}
+{% block heading %}Delete my account{% endblock %}
+{% block content %}
+<div class="form-card wide">
+  <div class="card" style="padding:20px;border-color:#f3c1c1">
+    <h3 style="margin-top:0;color:#b4232c">This permanently deletes everything</h3>
+    <ul class="dna-list">
+      <li>All your wardrobe items <b>and their uploaded photos</b></li>
+      <li>Saved outfits, feedback and weekly plans</li>
+      <li>Laundry history, trips and packing lists</li>
+      <li>Prompt Lab prompts, versions, analyses and AI request logs</li>
+      <li>Your login, profile and city preferences</li>
+    </ul>
+    <p class="text-muted">Tip: download your data first — it cannot be recovered afterwards.</p>
+    <a class="btn btn-outline-secondary" href="{% url 'export_data' %}">⬇ Download my data first</a>
+  </div>
+  <form method="post" class="form-fields" style="margin-top:18px">{% csrf_token %}
+    {{ form.as_p }}
+    <button class="btn btn-danger" onclick="return confirm('Delete your account and all of its data? This cannot be undone.');">
+      Permanently delete my account
+    </button>
+    <a class="btn btn-outline-secondary" href="{% url 'preferences' %}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

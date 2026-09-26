@@ -74,7 +74,9 @@
     <small class="muted">{{ t.description }}</small>
     <small class="muted" style="font-size:11px">Techniques: {{ t.technique }}</small>
     <div class="action-chips">
-      <a class="btn btn-ghost" style="padding:6px 12px;font-size:12px" href="/lab/templates/{{ t.pk }}/use/">Use template →</a>
+      <form method="post" action="{% url 'template_use' t.pk %}">{% csrf_token %}
+        <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" type="submit">Use template →</button>
+      </form>
     </div>
   </article>
   {% empty %}<div class="empty">No templates match your search.</div>

@@ -1,9 +1,15 @@
 from django import forms
 
 from .models import Item
+from .validators import ValidatedImageField, validate_image_upload
 
 
 class ItemForm(forms.ModelForm):
+    image = ValidatedImageField(
+        validators=[validate_image_upload], required=False,
+        widget=forms.ClearableFileInput(attrs={"accept": "image/*"}),
+        help_text="JPEG, PNG or WebP. Colour, pattern and a preview are detected automatically.")
+
     class Meta:
         model = Item
         fields = ["name", "image", "category", "color", "pattern", "material",
@@ -17,5 +23,4 @@ class ItemForm(forms.ModelForm):
             "occasions": forms.TextInput(attrs={"placeholder": "office, casual, party (comma separated)", "class": "input"}),
             "purchase_price": forms.NumberInput(attrs={"step": "0.01", "min": "0", "class": "input"}),
             "notes": forms.Textarea(attrs={"rows": 3, "class": "input"}),
-            "image": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }

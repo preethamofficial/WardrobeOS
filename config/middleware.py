@@ -3,6 +3,10 @@
 Set LOGIN_REQUIRED=True in .env to require sign-in for every page except
 the allow-list below. Default is off so the local-first experience is
 unchanged; deployment configs can enable it with one variable.
+
+Note: `/media/` is deliberately NOT allow-listed. Uploaded photos are served by
+`wardrobe.media_views.serve_media`, which returns a file only to the account
+that owns it, so a logged-out visitor (or a wrong account) gets a 404.
 """
 from __future__ import annotations
 
@@ -11,7 +15,7 @@ from django.shortcuts import redirect
 
 ALLOWLIST_PREFIXES = ("/admin/login/", "/accounts/login/", "/accounts/signup/",
                       "/accounts/google/", "/accounts/3rdparty/",
-                      "/static/", "/media/", "/health/")
+                      "/static/", "/health/")
 
 
 class LoginRequiredMiddleware:

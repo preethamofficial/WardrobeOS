@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+/* DM Sans is vendored in static/vendor/fonts.css (loaded from base.html) - no
+   Google Fonts request, so page loads stay private and work fully offline. */
 :root{--bg:#f5f7fb;--ink:#111827;--muted:#6b7280;--line:#e5e7eb;--accent:#635bff;--dark:#15171c}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:'DM Sans',Arial,sans-serif}
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:245px;background:#fff;border-right:1px solid var(--line);padding:26px 16px;z-index:5}
@@ -190,6 +191,20 @@ font-weight:700;color:var(--ink);text-decoration:none;margin-top:12px}
 .auth-divider::before,.auth-divider::after{content:"";flex:1;height:1px;background:var(--line)}
 .auth-alt{text-align:center;margin-top:16px}
 .auth-alt a{color:var(--accent);font-weight:700;text-decoration:none}
+
+/* ===== stacked action buttons on saved-outfit cards (#14) ===== */
+.stacked-actions{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.stacked-actions .inline-form{width:100%}
+.stacked-actions .btn{width:100%;justify-content:center}
+
+/* ===== feedback form controls (#14) ===== */
+.form-legend{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.radio-chip{display:inline-flex;align-items:center;gap:8px;margin-right:10px;
+background:var(--surface);border:1px solid var(--line);border-radius:30px;
+padding:9px 15px;font-size:13px;font-weight:600;cursor:pointer}
+.radio-chip:has(input:checked){border-color:var(--accent);color:var(--accent);
+background:rgba(99,91,255,.08)}
+.radio-chip input{accent-color:var(--accent)}
 
 
 

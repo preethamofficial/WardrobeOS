@@ -1,4 +1,5 @@
 """Tests for the Prompt Lab engine, provider routing, views and core regressions."""
+from django.contrib.auth.models import User
 from django.test import Client, TestCase
 
 from ai import providers as ai_providers
@@ -8,7 +9,8 @@ from promptlab.engine.mutations import mutate
 from promptlab.engine.optimizer import optimize
 from promptlab.engine.pipeline import build_prompt, generate_all_tiers
 from promptlab.engine.workflows import run_workflow
-from promptlab.models import Prompt, PromptTemplate
+from promptlab.models import Prompt, PromptTemplate, WorkflowRun
+from promptlab.services import lab_stats
 from wardrobe.models import Item
 
 WEAK_PROMPT = "write something good about our product maybe"
@@ -229,7 +231,11 @@ class PromptLabViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Seo brief")
         template = PromptTemplate.objects.get(title="Seo brief")
+        # "Use" writes a new prompt, so GET must be rejected (405) - P1 #12.
         response = self.client.get(f"/lab/templates/{template.pk}/use/")
+        self.assertEqual(response.status_code, 405)
+        self.assertFalse(Prompt.objects.filter(title="Seo brief").exists())
+        response = self.client.post(f"/lab/templates/{template.pk}/use/")
         self.assertEqual(response.status_code, 302)
         self.assertTrue(Prompt.objects.filter(title="Seo brief").exists())
 
@@ -299,6 +305,78 @@ class CoreRegressionTests(TestCase):
         for url in ("/api/items/", "/api/weather/", "/api/outfits/today/"):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 200, url)
+
+
+class PromptLabOwnershipTests(TestCase):
+    """Audit P0 #1 / P2 #22: prompts, logs and workflow runs are per-account."""
+
+    def setUp(self):
+        self.client = Client(SERVER_NAME="127.0.0.1")
+        self.alice = User.objects.create_user("alice", password="pw12345!")
+        self.bob = User.objects.create_user("bob", password="pw12345!")
+
+    def test_create_prompt_is_owned_by_the_signed_in_user(self):
+        self.client.force_login(self.alice)
+        self.client.post("/lab/prompts/add/", {"title": "Alice prompt",
+                                               "body": STRONG_PROMPT,
+                                               "goal": "coding"})
+        prompt = Prompt.objects.get(title="Alice prompt")
+        self.assertEqual(prompt.owner, self.alice)
+
+    def test_anonymous_prompt_goes_to_the_shared_local_workspace(self):
+        self.client.post("/lab/prompts/add/", {"title": "Local prompt",
+                                               "body": STRONG_PROMPT})
+        self.assertIsNone(Prompt.objects.get(title="Local prompt").owner)
+
+    def test_library_lists_only_own_prompts(self):
+        Prompt.objects.create(title="Alice secret", body=STRONG_PROMPT, owner=self.alice)
+        Prompt.objects.create(title="Bob secret", body=STRONG_PROMPT, owner=self.bob)
+        Prompt.objects.create(title="Shared local", body=STRONG_PROMPT)
+        self.client.force_login(self.alice)
+        page = self.client.get("/lab/library/")
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, "Alice secret")
+        self.assertNotContains(page, "Bob secret")
+        self.assertNotContains(page, "Shared local")
+
+    def test_foreign_prompt_detail_is_404_and_writes_do_not_leak(self):
+        foreign = Prompt.objects.create(title="Not yours", body=STRONG_PROMPT, owner=self.bob)
+        self.client.force_login(self.alice)
+        self.assertEqual(self.client.get(f"/lab/prompts/{foreign.pk}/").status_code, 404)
+        # "Use" (POST) must not bump another account's counters.
+        self.client.post(f"/lab/prompts/{foreign.pk}/use/")
+        foreign.refresh_from_db()
+        self.assertEqual(foreign.use_count, 0)
+        # Delete on someone else's prompt leaves it alone.
+        self.client.post(f"/lab/prompts/{foreign.pk}/delete/")
+        self.assertTrue(Prompt.objects.filter(pk=foreign.pk).exists())
+
+    def test_workflow_runs_are_scoped_per_user(self):
+        WorkflowRun.objects.create(name="Alice workflow", preset="polish",
+                                   input_text="x", owner=self.alice)
+        WorkflowRun.objects.create(name="Bob workflow", preset="polish",
+                                   input_text="x", owner=self.bob)
+        self.client.force_login(self.alice)
+        page = self.client.get("/lab/workflows/")
+        self.assertContains(page, "Alice workflow")
+        self.assertNotContains(page, "Bob workflow")
+
+    def test_dashboard_stats_do_not_count_other_users(self):
+        Prompt.objects.create(title="Bob only", body=STRONG_PROMPT, owner=self.bob)
+        self.client.force_login(self.alice)
+        page = self.client.get("/lab/")
+        self.assertEqual(page.status_code, 200)
+        self.assertNotContains(page, "Bob only")
+
+    def test_stats_helper_respects_the_given_user(self):
+        Prompt.objects.create(title="mine", body=STRONG_PROMPT, owner=self.alice)
+        Prompt.objects.create(title="theirs", body=STRONG_PROMPT, owner=self.bob)
+        mine = lab_stats(self.alice)
+        theirs = lab_stats(self.bob)
+        shared = lab_stats(None)
+        self.assertEqual(mine["total_prompts"], 1)
+        self.assertEqual(theirs["total_prompts"], 1)
+        self.assertEqual(shared["total_prompts"], 2)
 
 
 

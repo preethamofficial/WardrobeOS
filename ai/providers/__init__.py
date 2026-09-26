@@ -14,14 +14,16 @@ from .gemini import GeminiProvider
 from .groq import GroqProvider
 from .huggingface import HuggingFaceProvider
 from .local import LocalProvider
+from .ollama import OllamaProvider
 from .openrouter import OpenRouterProvider
 
 ALL_PROVIDERS = [
+    OllamaProvider,      # fully local, no key, no cost, works offline
     GroqProvider,
     GeminiProvider,
     OpenRouterProvider,
     HuggingFaceProvider,
-    LocalProvider,
+    LocalProvider,       # last resort: deterministic rule engine, never fake AI
 ]
 
 _INSTANCES: dict[str, AIProvider] = {}
@@ -37,7 +39,7 @@ def _instance(provider_id: str) -> AIProvider | None:
 def provider_order() -> list[str]:
     """Configured-first ordering honouring AI_PROVIDER_ORDER, then auto-discovery."""
     order = [x.strip().lower() for x in
-             os.getenv("AI_PROVIDER_ORDER", "groq,gemini,openrouter,huggingface,local").split(",")
+             os.getenv("AI_PROVIDER_ORDER", "ollama,groq,gemini,openrouter,huggingface,local").split(",")
              if x.strip()]
     known = [cls.id for cls in ALL_PROVIDERS]
     ordered = [pid for pid in order if pid in known]
@@ -81,9 +83,10 @@ def complete_text(prompt: str, *, system: str | None = None, model: str | None =
     if not chosen:
         return AIResult(
             provider="none", model="", ok=False, error_code="missing_config",
-            error_message=("No AI provider is configured. Add GROQ_API_KEY, GEMINI_API_KEY, "
-                           "OPENROUTER_API_KEY or HUGGINGFACE_API_KEY to your .env file. "
-                           "Local prompt tools still work without a provider."),
+            error_message=("No AI provider is configured. Enable the free local option by "
+                           "installing Ollama (OLLAMA_ENABLED=True), or add GROQ_API_KEY, "
+                           "GEMINI_API_KEY, OPENROUTER_API_KEY or HUGGINGFACE_API_KEY to "
+                           "your .env file. Local prompt tools still work without a provider."),
         )
 
     result = AIResult(provider="none", model="")
@@ -101,11 +104,38 @@ def complete_text(prompt: str, *, system: str | None = None, model: str | None =
     return result
 
 
+def provider_catalog(user=None) -> list[dict]:
+    """Provider status annotated with a per-user recommendation.
+
+    Shared keys should not be spent on anonymous traffic, so when `user` is not
+    signed in hosted providers are reported as available-but-recommendation-off.
+    """
+    signed_in = bool(user is not None and getattr(user, "is_authenticated", False))
+    catalog = []
+    for entry in provider_status():
+        entry = dict(entry)
+        local = entry["id"] == "ollama"
+        entry["signed_in"] = signed_in
+        entry["recommended"] = bool(entry["configured"] and (local or signed_in))
+        if not entry["configured"]:
+            entry["hint"] = ("Install Ollama and set OLLAMA_ENABLED=True for free offline AI."
+                             if local else
+                             f"Add {entry['key_env']} to your .env file to enable this provider.")
+        elif local:
+            entry["hint"] = "Runs on your own machine - no key, no cost, works offline."
+        elif not signed_in:
+            entry["hint"] = "Sign in to use this shared provider, or use Ollama for free local AI."
+        else:
+            entry["hint"] = "Ready to use."
+        catalog.append(entry)
+    return catalog
+
+
 __all__ = [
     "AIError", "AIProvider", "AIResult", "AuthError", "InvalidResponseError",
     "MissingConfigError", "ProviderTimeoutError", "ProviderUnavailableError",
     "RateLimitError", "GroqProvider", "GeminiProvider", "OpenRouterProvider",
-    "HuggingFaceProvider", "LocalProvider", "provider_order", "provider_status",
-    "configured_text_providers", "complete_text",
+    "HuggingFaceProvider", "OllamaProvider", "LocalProvider", "provider_order",
+    "provider_status", "provider_catalog", "configured_text_providers", "complete_text",
 ]
 

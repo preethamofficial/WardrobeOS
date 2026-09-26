@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Django tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    env:
+      DEBUG: "True"
+      SECRET_KEY: ci-test-secret-key-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+      - name: Install pinned dependencies
+        run: pip install -r requirements.txt
+      - name: Django system check
+        run: python manage.py check
+      - name: Run tests
+        run: python manage.py test --verbosity 2
+
+  security:
+    name: Security audit (bandit + pip-audit)
+    runs-on: ubuntu-latest
+    env:
+      DEBUG: "True"
+      SECRET_KEY: ci-audit-secret-key-not-for-production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install audit tooling
+        run: pip install bandit pip-audit
+      - name: Bandit (static security analysis)
+        # B101: assert usage in code, B608: SQL construction warnings - both are
+        # reviewed manually in this codebase; everything else must pass.
+        run: bandit -r . -x ./migrations,./.venv -ll -i
+      - name: pip-audit (known CVEs in pinned deps)
+        run: pip-audit -r requirements.txt --strict || pip-audit -r requirements.txt

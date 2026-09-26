@@ -184,3 +184,136 @@ class MultiUserTests(TestCase):
         self.assertIn("_auth_user_id", c2.session)
         # carol's wardrobe starts empty (no shared items leak in)
         self.assertEqual(self._names(c2), [])
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class MediaPrivacyTests(TestCase):
+    """P0 #2/#4: /media/ is ownership-checked, in dev AND production mode."""
+
+    def _upload(self, user, name, rgb):
+        client = Client()
+        if user is not None:
+            client.force_login(user)
+        upload = SimpleUploadedFile(f"{name}.jpg", _image_bytes(rgb),
+                                    content_type="image/jpeg")
+        client.post("/wardrobe/add/", {"name": name, "category": "tshirt",
+                                       "formality": "casual", "status": "clean",
+                                       "purchase_price": "0", "season": "all",
+                                       "image": upload})
+        return client, Item.objects.get(name=name)
+
+    def test_owner_can_view_but_strangers_cannot(self):
+        from django.contrib.auth.models import User
+
+        alice = User.objects.create_user("alice-m", password="pw12345!")
+        bob = User.objects.create_user("bob-m", password="pw12345!")
+        _, item = self._upload(alice, "Private Navy", (27, 42, 74))
+        url = f"/media/{item.image.name}"
+
+        owner = Client(); owner.force_login(alice)
+        intruder = Client(); intruder.force_login(bob)
+        anon = Client()
+
+        self.assertEqual(owner.get(url).status_code, 200)     # owner: 200 + bytes
+        self.assertEqual(intruder.get(url).status_code, 404)  # other user: 404
+        self.assertEqual(anon.get(url).status_code, 404)      # anonymous: 404
+        # The thumbnail is protected too.
+        thumb = f"/media/{item.thumbnail.name}"
+        self.assertEqual(owner.get(thumb).status_code, 200)
+        self.assertEqual(intruder.get(thumb).status_code, 404)
+
+    def test_shared_local_workspace_still_serves_anonymous_files(self):
+        """Local-first mode (owner = NULL) keeps working for offline visitors."""
+        _, item = self._upload(None, "Shared Local", (120, 30, 30))
+        self.assertEqual(Client().get(f"/media/{item.image.name}").status_code, 200)
+
+    def test_path_traversal_is_rejected(self):
+        for bad in ("/etc/passwd", "../../config/settings.py", "..\\..\\db.sqlite3"):
+            self.assertEqual(Client().get(f"/media/{bad.lstrip('/')}").status_code, 404,
+                             msg=f"traversal not blocked: {bad}")
+
+    @override_settings(DEBUG=False)
+    def test_images_work_with_debug_false(self):
+        """Production mode: media still resolves (P0 #4)."""
+        from django.contrib.auth.models import User
+
+        dana = User.objects.create_user("dana-m", password="pw12345!")
+        _, item = self._upload(dana, "Prod Navy", (27, 42, 74))
+        c = Client(); c.force_login(dana)
+        self.assertEqual(c.get(f"/media/{item.image.name}").status_code, 200)
+
+
+@override_settings(MEDIA_ROOT=tempfile.mkdtemp())
+class UploadLimitTests(TestCase):
+    """P1 #11: size / corruption / dimensions are validated before saving."""
+
+    def _post(self, upload, name="Lim"):
+        return self.client.post("/wardrobe/add/", {"name": name, "category": "tshirt",
+                                                   "formality": "casual", "status": "clean",
+                                                   "purchase_price": "0", "season": "all",
+                                                   "image": upload})
+
+    def test_oversized_file_is_rejected(self):
+        blob = b"\xff\xd8\xff\xe0" + os.urandom(int(9 * 1024 * 1024))  # > 8 MB cap
+        upload = SimpleUploadedFile("huge.jpg", blob, content_type="image/jpeg")
+        response = self._post(upload)
+        self.assertEqual(response.status_code, 200)  # re-rendered with errors
+        self.assertContains(response, "limit is", status_code=200)
+        self.assertFalse(Item.objects.filter(name="Lim").exists())
+
+    def test_corrupt_image_is_rejected(self):
+        upload = SimpleUploadedFile("broken.jpg", b"not an image at all",
+                                    content_type="image/jpeg")
+        self.assertEqual(self._post(upload).status_code, 200)
+        self.assertFalse(Item.objects.filter(name="Lim").exists())
+
+    def test_tiny_image_is_rejected(self):
+        buf = BytesIO()
+        Image.new("RGB", (8, 8), (10, 20, 30)).save(buf, format="JPEG")
+        upload = SimpleUploadedFile("tiny.jpg", buf.getvalue(), content_type="image/jpeg")
+        response = self._post(upload)
+        self.assertContains(response, "too small", status_code=200)
+        self.assertFalse(Item.objects.filter(name="Lim").exists())
+
+    def test_heic_hint_is_shown(self):
+        upload = SimpleUploadedFile("photo.heic", b"ftypheic....data",
+                                    content_type="image/heic")
+        self.assertContains(self._post(upload), "HEIC", status_code=200)
+        self.assertFalse(Item.objects.filter(name="Lim").exists())
+
+    def test_decompression_bomb_pixels_are_rejected(self):
+        """Refuse absurd dimensions before the pixels are ever touched."""
+        from django.core.exceptions import ValidationError
+
+        import wardrobe.validators as validators
+        from wardrobe.validators import validate_image_upload
+
+        class FakeUpload:
+            size = 1024
+            name = "bomb.png"
+
+            def seek(self, *_a):
+                pass
+
+        class Bomb:
+            format = "PNG"
+            size = (90000, 90000)  # 8.1 GPix >> 40 MP default ceiling
+
+            def verify(self):
+                return None
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *exc):
+                return False
+
+        original_open = validators.Image.open
+        validators.Image.open = lambda *_a, **_k: Bomb()
+        try:
+            with self.assertRaises(ValidationError) as ctx:
+                validate_image_upload(FakeUpload())
+            self.assertIn("MP", str(ctx.exception))          # pixel-ceiling error
+            self.assertIn("90000", str(ctx.exception))       # reports true dimensions
+        finally:
+            validators.Image.open = original_open

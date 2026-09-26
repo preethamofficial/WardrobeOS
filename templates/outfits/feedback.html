@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Feedback · WardrobeOS{% endblock %}
+{% block heading %}How did it wear?{% endblock %}
+{% block content %}
+<div class="form-card auth-card">
+  <span class="eyebrow">OUTFIT FEEDBACK</span>
+  <h3>{{ outfit.name }}</h3>
+  <p class="text-muted">{% if outfit.occasion %}{{ outfit.occasion|title }} · {% endif %}stylist score {{ outfit.score|floatformat:0 }}/100</p>
+
+  <div class="outfit-items">
+    {% for item in outfit.items.all %}
+    <div class="outfit-item">
+      {% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">
+      {% else %}<span>👕</span>{% endif %}
+      <b>{{ item.name }}</b><small>{{ item.get_category_display }}{% if item.color %} · {{ item.color }}{% endif %}</small>
+    </div>
+    {% endfor %}
+  </div>
+
+  <p class="text-muted">
+    {% if summary.total %}{{ summary.likes }} like{{ summary.likes|pluralize }} · {{ summary.dislikes }} dislike{{ summary.dislikes|pluralize }} so far.
+    {% else %}No feedback yet - yours will shape future suggestions.{% endif %}
+  </p>
+
+  <form method="post" class="form-fields">{% csrf_token %}
+    <fieldset style="border:0;padding:0;margin:12px 0">
+      <legend class="form-legend">Verdict</legend>
+      <label class="radio-chip"><input type="radio" name="value" value="1" required> 👍 It worked</label>
+      <label class="radio-chip"><input type="radio" name="value" value="-1"> 👎 Not for me</label>
+    </fieldset>
+    <p><label for="reason">What stood out? (optional)</label>
+      <select name="reason" id="reason" class="input">
+        <option value="">No particular reason</option>
+        {% for key, label in reasons %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+      </select></p>
+    <p><label for="note">Notes for the stylist (optional)</label>
+      <textarea name="note" id="note" class="input" rows="3" maxlength="240"
+                placeholder="e.g. navy chinos felt great, shirt too warm for the office"></textarea></p>
+    <button class="btn btn-dark" type="submit">Send feedback</button>
+    <a href="{% url 'outfit_history' %}" class="btn btn-outline-secondary">Back to history</a>
+  </form>
+</div>
+{% endblock %}

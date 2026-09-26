@@ -1,15 +1,24 @@
-"""Service layer: prompt versioning, multi-provider comparison, logging, stats."""
+"""Service layer: prompt versioning, multi-provider comparison, logging, stats.
+
+Every write records the acting user (`owner`) and every read is scoped to it, so
+a hosted multi-user deployment never leaks one account's prompts, AI logs or
+workflow runs to another. Anonymous use keeps the shared local-first workspace
+(owner = NULL).
+"""
 from __future__ import annotations
 
 from ai.providers import complete_text, provider_status
+from config.scoping import (owner_of, scoped_ai_logs, scoped_prompts,
+                            scoped_workflow_runs)
 from promptlab.engine.analyzer import analyze_prompt
 from promptlab.models import AIRequestLog, Prompt, PromptVersion, WorkflowRun
 
 
 # --- prompts & versioning -------------------------------------------------------
-def create_prompt(*, title, body, **fields) -> Prompt:
-    """Create a prompt and its first version snapshot."""
-    prompt = Prompt.objects.create(title=title, body=body, **fields)
+def create_prompt(user, *, title, body, **fields) -> Prompt:
+    """Create a prompt (owned by `user`) and its first version snapshot."""
+    prompt = Prompt.objects.create(title=title, body=body, owner=owner_of(user),
+                                   **fields)
     PromptVersion.objects.create(prompt=prompt, version_number=1, body=body,
                                  score=analyze_prompt(body)["score"],
                                  change_note="Initial version")
@@ -33,7 +42,7 @@ def duplicate_prompt(prompt: Prompt) -> Prompt:
         title=f"{prompt.title} (copy)", body=prompt.body, goal=prompt.goal,
         category=prompt.category, tags=prompt.tags, target_model=prompt.target_model,
         audience=prompt.audience, tone=prompt.tone, language=prompt.language,
-        source=prompt.source)
+        source=prompt.source, owner=prompt.owner)
     PromptVersion.objects.create(prompt=copy, version_number=1, body=prompt.body,
                                  score=analyze_prompt(prompt.body)["score"],
                                  change_note=f"Duplicated from '{prompt.title}'")
@@ -41,13 +50,14 @@ def duplicate_prompt(prompt: Prompt) -> Prompt:
 
 
 # --- AI comparison --------------------------------------------------------------
-def compare_providers(text: str, provider_ids: list[str] | None = None,
+def compare_providers(user, text: str, provider_ids: list[str] | None = None,
                       *, kind: str = "compare", timeout: int = 45) -> dict:
     """Send the same prompt to each configured provider (sequentially).
 
     Only configured providers are contacted, one call each - no fan-out spam.
-    Every call is logged with latency/usage/error for the dashboard.
+    Every call is logged with latency/usage/error under the acting user.
     """
+    owner = owner_of(user)
     results = []
     statuses = {s["id"]: s for s in provider_status()}
     chosen = provider_ids or list(statuses.keys())
@@ -65,6 +75,7 @@ def compare_providers(text: str, provider_ids: list[str] | None = None,
         usage = result.usage or {}
         if result.ok:
             AIRequestLog.objects.create(
+                owner=owner,
                 provider=result.provider, model=result.model, kind=kind,
                 status="ok", latency_ms=result.latency_ms,
                 prompt_tokens=usage.get("prompt_tokens") or usage.get("promptTokenCount"),
@@ -76,6 +87,7 @@ def compare_providers(text: str, provider_ids: list[str] | None = None,
                             "usage": usage, "attempts": result.attempts})
         else:
             AIRequestLog.objects.create(
+                owner=owner,
                 provider=result.provider, model=result.model or "-", kind=kind,
                 status="error", error_code=result.error_code or "error",
                 error_message=(result.error_message or "")[:240], latency_ms=result.latency_ms)
@@ -88,18 +100,27 @@ def compare_providers(text: str, provider_ids: list[str] | None = None,
 
 
 # --- workflow persistence ---------------------------------------------------------
-def save_workflow_run(name: str, preset: str, input_text: str, outcome: dict) -> WorkflowRun:
+def save_workflow_run(user, name: str, preset: str, input_text: str,
+                      outcome: dict) -> WorkflowRun:
     return WorkflowRun.objects.create(
+        owner=owner_of(user),
         name=name or f"{preset} workflow", preset=preset, input_text=input_text,
         final_text=outcome.get("final", ""), final_score=outcome.get("final_score"),
         used_ai=outcome.get("used_ai", False), steps=outcome.get("steps", []))
 
 
-# --- dashboard stats (all real data) ------------------------------------------------
-def lab_stats() -> dict:
-    prompts = Prompt.objects.all()
-    versions = PromptVersion.objects.all()
-    logs = AIRequestLog.objects.all()
+# --- dashboard stats (all real data, always scoped to the acting user) -------------
+def lab_stats(user=None) -> dict:
+    """`user=None` means "no scoping" (management commands / health checks)."""
+    if user is None:
+        prompts = Prompt.objects.all()
+        logs = AIRequestLog.objects.all()
+        runs = WorkflowRun.objects.all()
+    else:
+        prompts = scoped_prompts(user)
+        logs = scoped_ai_logs(user)
+        runs = scoped_workflow_runs(user)
+    versions = PromptVersion.objects.filter(prompt__in=prompts)
     scored = [v.score for v in versions.only("score") if v.score is not None]
     avg_score = round(sum(scored) / len(scored)) if scored else None
     categories: dict[str, int] = {}
@@ -121,7 +142,7 @@ def lab_stats() -> dict:
         "avg_score": avg_score,
         "ai_requests": logs.count(),
         "ai_errors": logs.filter(status="error").count(),
-        "workflows": WorkflowRun.objects.count(),
+        "workflows": runs.count(),
         "categories": sorted(categories.items(), key=lambda kv: kv[1], reverse=True)[:6],
         "provider_usage": provider_usage,
         "recent_prompts": prompts[:5],

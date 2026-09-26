@@ -1,3 +1,14 @@
 {% extends "base.html" %}{% block heading %}Laundry center{% endblock %}{% block content %}
-<div class="section-head"><div><span class="eyebrow">CARE & ROTATION</span><h3>Items needing attention</h3></div></div>
-<div class="laundry-list">{% for item in items %}<div class="laundry-row"><div class="avatar">👕</div><div><b>{{item.name}}</b><p>{{item.wear_count}} wears · {{item.get_status_display}}</p></div><span class="tag">{{item.get_status_display}}</span></div>{% empty %}<div class="empty">Your laundry queue is clear.</div>{% endfor %}</div>{% endblock %}
+<div class="section-head"><div><span class="eyebrow">CARE & ROTATION</span><h3>Items needing attention</h3></div>
+{% if items %}<form method="post" action="{% url 'wash_all' %}" class="inline-form">{% csrf_token %}<button class="btn btn-dark" type="submit">✓ Mark all washed</button></form>{% endif %}</div>
+<div class="laundry-list">{% for item in items %}
+<div class="laundry-row">
+  <div class="avatar">{% if item.display_image %}<img src="{{ item.display_image }}" alt="{{ item.name }}" loading="lazy">{% else %}👕{% endif %}</div>
+  <div><b>{{ item.name }}</b><p>{{ item.wear_count }} wear{{ item.wear_count|pluralize }} · {{ item.get_status_display }}{% if item.last_worn %} · last worn {{ item.last_worn|date:"j M" }}{% endif %}</p></div>
+  <span class="tag">{{ item.get_status_display }}</span>
+  <form method="post" action="{% url 'mark_washed' item.pk %}" class="inline-form">{% csrf_token %}
+    <button class="btn btn-ghost" type="submit" title="Log a wash and return this item to clean rotation"
+            aria-label="Mark {{ item.name }} washed">✓ Mark washed</button>
+  </form>
+</div>{% empty %}<div class="empty">Your laundry queue is clear. Items appear here once you log them as worn.</div>{% endfor %}</div>
+{% endblock %}

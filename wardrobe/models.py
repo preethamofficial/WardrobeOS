@@ -1,5 +1,7 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.signals import post_delete, pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 
 
@@ -50,3 +52,47 @@ class Item(models.Model):
         if entries: return entries[0]["hex"], entries[0]["name"]
         return None, (self.color or "")
     def __str__(self): return self.name
+
+
+# --- file lifecycle -----------------------------------------------------------------
+def _delete_stored_file(field_file, *, label: str) -> None:
+    """Remove one FileField's underlying file, ignoring already-missing files."""
+    if not field_file or not getattr(field_file, "name", ""):
+        return
+    storage = field_file.storage
+    name = field_file.name
+    try:
+        if storage.exists(name):
+            storage.delete(name)
+    except Exception:  # never fail a DB write because of storage trouble
+        import logging
+        logging.getLogger("wardrobe").warning(
+            "Could not delete %s file %s", label, name, exc_info=True)
+
+
+def _release_replaced(old_file, new_file, *, label: str) -> None:
+    """Free the old file when the field was pointed somewhere else or cleared."""
+    old_name = getattr(old_file, "name", "") or ""
+    new_name = getattr(new_file, "name", "") or ""
+    if old_name and old_name != new_name:
+        _delete_stored_file(old_file, label=label)
+
+
+@receiver(pre_save, sender=Item)
+def item_pre_save_release_replaced_files(sender, instance, **kwargs):
+    """Delete the superseded photo/thumbnail so edits don't leak disk space."""
+    if not instance.pk:
+        return
+    try:
+        previous = sender.objects.get(pk=instance.pk)
+    except sender.DoesNotExist:
+        return
+    _release_replaced(previous.image, instance.image, label="image")
+    _release_replaced(previous.thumbnail, instance.thumbnail, label="thumbnail")
+
+
+@receiver(post_delete, sender=Item)
+def item_post_delete_remove_files(sender, instance, **kwargs):
+    """Remove the original photo and its thumbnail when an item is deleted."""
+    _delete_stored_file(instance.image, label="image")
+    _delete_stored_file(instance.thumbnail, label="thumbnail")

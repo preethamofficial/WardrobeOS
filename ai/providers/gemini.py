@@ -1,6 +1,12 @@
 """Google Gemini provider (free tier) - text generation + clothing image analysis.
 
 Keys are optional and read from GEMINI_API_KEY. Model override: GEMINI_MODEL.
+
+Google retires Gemini model IDs regularly (`gemini-2.0-flash` was withdrawn, so
+hard-coding it broke every vision call). The default below is a currently
+supported, free-tier model, and if the API answers "model not found" we retry
+the next candidate in FALLBACK_MODELS before giving up - so an upstream
+retirement degrades to a slower call instead of a hard failure.
 """
 import os
 import base64
@@ -9,6 +15,10 @@ import json
 from .base import AIProvider, AIResult, InvalidResponseError, now_ms, post_json
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+
+# Ordered newest/most capable free-tier first. Only ever contacted after the
+# primary model returned a model-not-found error.
+FALLBACK_MODELS = ("gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.0-flash-lite")
 
 VALID_CATEGORIES = {"shirt", "tshirt", "pant", "jeans", "shorts", "jacket",
                     "hoodie", "sweater", "dress", "skirt", "shoes", "accessory", "other"}
@@ -33,19 +43,44 @@ class GeminiProvider(AIProvider):
     id = "gemini"
     label = "Google Gemini"
     capabilities = ("text", "vision")
-    default_model = "gemini-2.0-flash"
+    default_model = "gemini-2.5-flash"
     docs_url = "https://ai.google.dev/gemini-api/docs"
 
     def _model(self) -> str:
         return os.getenv("GEMINI_MODEL", self.default_model).strip() or self.default_model
 
+    @staticmethod
+    def _is_missing_model(exc: Exception) -> bool:
+        """True when the API rejected the model ID itself (not the request)."""
+        text = f"{exc}".lower()
+        return ("not found" in text or "not supported" in text or "unsupported" in text) \
+            and "model" in text
+
     def _generate(self, payload: dict, timeout: int) -> dict:
-        return post_json(
-            API_URL.format(model=self._model()),
-            payload=payload,
-            headers={"x-goog-api-key": self.api_key(), "Content-Type": "application/json"},
-            timeout=timeout,
-        )
+        primary = self._model()
+        try:
+            return post_json(
+                API_URL.format(model=primary),
+                payload=payload,
+                headers={"x-goog-api-key": self.api_key(), "Content-Type": "application/json"},
+                timeout=timeout)
+        except Exception as exc:
+            if not self._is_missing_model(exc):
+                raise
+            # The configured model was retired upstream - walk the fallbacks once.
+            for candidate in FALLBACK_MODELS:
+                if candidate == primary:
+                    continue
+                try:
+                    return post_json(
+                        API_URL.format(model=candidate),
+                        payload=payload,
+                        headers={"x-goog-api-key": self.api_key(),
+                                 "Content-Type": "application/json"},
+                        timeout=timeout)
+                except Exception:  # try the next candidate
+                    continue
+            raise
 
     @staticmethod
     def _text_from_body(body: dict) -> str:

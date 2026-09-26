@@ -1,4 +1,23 @@
 {% extends "base.html" %}{% block heading %}Trips & packing{% endblock %}{% block content %}
-<div class="hero-card compact"><div><span class="badge-soft">SMART PACKING</span><h2>Build lighter, smarter trips.</h2><p>Add trips through Admin in this starter version. The packing engine is ready for expansion.</p></div></div>
-{% for trip in trips %}<div class="trip-row"><b>{{trip.name}}</b><span>{{trip.destination}}</span><span>{{trip.start_date}} → {{trip.end_date}}</span></div>{% empty %}<div class="empty">No trips yet.</div>{% endfor %}
+<div class="hero-card compact"><div><span class="badge-soft">SMART PACKING</span><h2>Build lighter, smarter trips.</h2><p>Add a trip and we pack for the forecast using the clothes you actually own.</p></div>
+<a class="btn btn-dark" href="{% url 'trip_create' %}">＋ Plan trip</a></div>
+<div class="trip-list">
+{% for trip in trips %}
+<div class="trip-item">
+  <a class="trip-main" href="{% url 'trip_detail' trip.pk %}">
+    <b>{{ trip.name }}</b>
+    <span class="text-muted">{{ trip.destination }} · {{ trip.start_date }} → {{ trip.end_date }} · {{ trip.nights }} night{{ trip.nights|pluralize }}</span>
+    <div class="progress-track slim"><div class="progress-fill" style="width:{{ trip.pack_progress }}%"></div></div>
+    <small class="text-muted">{{ trip.packed_count }}/{{ trip.packing|length }} packed · {{ trip.pack_progress }}%</small>
+  </a>
+  <div class="trip-item-actions">
+    <a class="btn btn-ghost" href="{% url 'trip_edit' trip.pk %}" aria-label="Edit {{ trip.name }}" title="Edit trip">✎</a>
+    <form method="post" action="{% url 'trip_delete' trip.pk %}" class="inline-form"
+          onsubmit="return confirm('Delete “{{ trip.name|escapejs }}”?');">{% csrf_token %}
+      <button class="btn btn-ghost danger" type="submit" aria-label="Delete {{ trip.name }}" title="Delete trip">🗑</button>
+    </form>
+  </div>
+</div>
+{% empty %}<div class="empty">No trips yet. <a href="{% url 'trip_create' %}">Plan your first trip →</a></div>{% endfor %}
+</div>
 {% endblock %}

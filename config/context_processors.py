@@ -3,18 +3,27 @@ import os
 
 from django.conf import settings
 
+from accounts_app.models import resolve_location
 from weather.service import get_weather, summarize
 
 
 def weather(request):
+    """Live weather for the *viewer's* city.
+
+    This used to read DEFAULT_LATITUDE / DEFAULT_CITY from the environment, so
+    every visitor of a hosted deployment saw Bengaluru. It now resolves the
+    location per request: the signed-in user's saved city first, environment
+    defaults only as fallback.
+    """
+    user = getattr(request, "user", None)
+    place = resolve_location(user)
     try:
-        data = summarize(get_weather(float(os.getenv("DEFAULT_LATITUDE", "12.9716")),
-                                     float(os.getenv("DEFAULT_LONGITUDE", "77.5946"))))
-        data["city"] = os.getenv("DEFAULT_CITY", "Bengaluru")
+        data = summarize(get_weather(place["lat"], place["lon"]))
+        data["city"] = place["city"]
     except Exception:
-        data = {"emoji": "🌡️", "label": "weather offline", "city": os.getenv("DEFAULT_CITY", ""),
+        data = {"emoji": "🌡️", "label": "weather offline", "city": place["city"],
                 "temp": None, "kind": None, "rainy": False, "hot": False, "cold": False}
-    return {"live_weather": data}
+    return {"live_weather": data, "location": place}
 
 
 def auth_flags(request):

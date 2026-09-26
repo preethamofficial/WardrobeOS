@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · Trips{% endblock %}
+{% block eyebrow %}TRIPS · SMART PACKING{% endblock %}
+{% block heading %}{{ title }}{% endblock %}
+{% block content %}
+<div class="form-card wide">
+<p class="text-muted">We look up the destination's forecast (free Open-Meteo, no API key) and build a packing list from the clothes you actually own and have clean right now.</p>
+<form method="post" class="form-fields" novalidate>{% csrf_token %}
+{% if form.non_field_errors %}<div class="field-errors">{{ form.non_field_errors }}</div>{% endif %}
+{% for field in form %}
+  <p>
+    <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} <span class="req">*</span>{% endif %}</label>
+    {{ field }}
+    {% if field.help_text %}<span class="helptext">{{ field.help_text }}</span>{% endif %}
+    {% if field.errors %}<span class="field-errors">{{ field.errors|striptags }}</span>{% endif %}
+  </p>
+{% endfor %}
+<div class="form-actions">
+  <button class="btn btn-dark">{% if mode == 'edit' %}Save changes{% else %}Create trip &amp; packing list{% endif %}</button>
+  {% if trip %}<a class="btn btn-outline-secondary" href="{% url 'trip_detail' trip.pk %}">Cancel</a>
+  {% else %}<a class="btn btn-outline-secondary" href="{% url 'trips' %}">Cancel</a>{% endif %}
+</div>
+</form>
+</div>
+{% endblock %}

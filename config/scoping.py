@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404
 from laundry.models import WashLog  # noqa: F401  (isolated through Item.owner)
 from outfits.models import Outfit
 from planner.models import Plan
+from promptlab.models import AIRequestLog, Prompt, PromptAnalysis, WorkflowRun
 from trips.models import Trip
 from wardrobe.models import Item
 
@@ -45,3 +46,32 @@ def get_scoped(qs, user, **filters):
     else:
         filters["owner__isnull"] = True
     return get_object_or_404(qs, **filters)
+
+
+def scoped_prompts(user):
+    if user.is_authenticated:
+        return Prompt.objects.filter(owner=user)
+    return Prompt.objects.filter(owner__isnull=True)
+
+
+def scoped_workflow_runs(user):
+    if user.is_authenticated:
+        return WorkflowRun.objects.filter(owner=user)
+    return WorkflowRun.objects.filter(owner__isnull=True)
+
+
+def scoped_ai_logs(user):
+    if user.is_authenticated:
+        return AIRequestLog.objects.filter(owner=user)
+    return AIRequestLog.objects.filter(owner__isnull=True)
+
+
+def scoped_analyses(user):
+    if user.is_authenticated:
+        return PromptAnalysis.objects.filter(owner=user)
+    return PromptAnalysis.objects.filter(owner__isnull=True)
+
+
+def owner_of(user):
+    """NULL for anonymous visitors (local-first), the User when signed in."""
+    return user if user.is_authenticated else None

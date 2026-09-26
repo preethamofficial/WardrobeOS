@@ -58,4 +58,23 @@
   </div>
 </div>
 {% endif %}
+
+{% if runs %}
+<div class="panel">
+  <div class="section-label">Saved runs</div>
+  {% for run in runs %}
+  <div class="provider-card" style="margin-top:10px">
+    <div class="provider-head">
+      <b>{{ run.name }}</b>
+      <span class="badge-ok">{{ run.get_preset_display|default:run.preset }}{% if run.final_score %} · {{ run.final_score }}/100{% endif %}</span>
+    </div>
+    <p class="muted" style="font-size:12px;margin:4px 0">
+      {{ run.created_at|date:"N j, Y, P" }} ·
+      {% if run.used_ai %}AI-assisted{% else %}local engine{% endif %} ·
+      {{ run.input_text|truncatechars:120 }}
+    </p>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

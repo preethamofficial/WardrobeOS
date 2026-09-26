@@ -1,5 +1,19 @@
+from django.conf import settings
 from django.db import models
 from django.utils import timezone
+
+
+def _owner_field(related_name):
+    """Per-user ownership, mirroring wardrobe/outfits/trips.
+
+    NULL owner = the shared local-first workspace (anonymous visitor), so the
+    app keeps working as a single-user local tool while hosted deployments get
+    strict per-account isolation.
+    """
+    return models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="Owner",
+                             on_delete=models.CASCADE, related_name=related_name,
+                             blank=True, null=True,
+                             help_text="Signed-in owner. NULL = shared local workspace.")
 
 
 class Prompt(models.Model):
@@ -37,6 +51,7 @@ class Prompt(models.Model):
     last_used_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    owner = _owner_field(related_name="prompts")
 
     class Meta:
         ordering = ["-updated_at"]
@@ -89,6 +104,7 @@ class PromptAnalysis(models.Model):
     score = models.FloatField(default=0)
     report = models.JSONField(default=dict)
     created_at = models.DateTimeField(auto_now_add=True)
+    owner = _owner_field(related_name="prompt_analyses")
 
     class Meta:
         ordering = ["-created_at"]
@@ -131,6 +147,7 @@ class AIRequestLog(models.Model):
     completion_tokens = models.PositiveIntegerField(blank=True, null=True)
     total_tokens = models.PositiveIntegerField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    owner = _owner_field(related_name="ai_request_logs")
 
     class Meta:
         ordering = ["-created_at"]
@@ -150,11 +167,33 @@ class WorkflowRun(models.Model):
     used_ai = models.BooleanField(default=False)
     steps = models.JSONField(default=list)
     created_at = models.DateTimeField(auto_now_add=True)
+    owner = _owner_field(related_name="workflow_runs")
 
     class Meta:
         ordering = ["-created_at"]
 
     def __str__(self):
         return self.name
+
+
+class RateBucket(models.Model):
+    """Fixed-window rate-limit counter shared by every worker/process.
+
+    Process memory counters break down behind gunicorn/uvicorn workers and die
+    on restart, so the counter lives in the database (or in REDIS_URL's cache
+    when one is configured). One row per (bucket, window) pair.
+    """
+    key = models.CharField(max_length=160, unique=True, db_index=True)
+    window = models.BigIntegerField(default=0, db_index=True,
+                                    help_text="Unix minute of the current window")
+    count = models.PositiveIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "rate limit bucket"
+        verbose_name_plural = "rate limit buckets"
+
+    def __str__(self):
+        return f"{self.key}={self.count}"
 
 

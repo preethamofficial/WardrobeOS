@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Preferences · Smart Wardrobe OS{% endblock %}
+{% block heading %}City & preferences{% endblock %}
+{% block content %}
+<div class="form-card wide">
+  <p class="text-muted">Your city drives the live weather pill, today's outfit suggestion and every
+  trip packing list. Set it once here instead of editing environment files.</p>
+  <div class="form-layout">
+    <form method="post" class="form-fields">{% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn btn-dark">Save preferences</button>
+    </form>
+    <div class="preview-col">
+      <div class="card" style="padding:18px">
+        <h4 style="margin-top:0">Current location</h4>
+        <p style="margin:6px 0"><b>{{ profile.location_label }}</b></p>
+        {% if profile.has_location %}
+          <p class="text-muted" style="margin:4px 0">Lat {{ profile.latitude|floatformat:3 }}, Lon {{ profile.longitude|floatformat:3 }}</p>
+          <p class="text-muted" style="margin:4px 0">Temperatures in {{ profile.get_temperature_unit_display }}</p>
+        {% else %}
+          <p class="text-muted">No saved city yet — the environment default is used until you save one.</p>
+        {% endif %}
+        <hr>
+        <h4 style="margin:0 0 8px">Your data</h4>
+        <ul class="dna-list">
+          <li><b>{{ counts.items }}</b> wardrobe items</li>
+          <li><b>{{ counts.outfits }}</b> saved outfits</li>
+          <li><b>{{ counts.trips }}</b> trips</li>
+        </ul>
+        <a class="btn btn-outline-secondary" href="{% url 'export_data' %}">⬇ Download my data (JSON)</a>
+      </div>
+      <div class="card" style="padding:18px;margin-top:14px;border-color:#f3c1c1">
+        <h4 style="margin-top:0;color:#b4232c">Danger zone</h4>
+        <p class="text-muted" style="font-size:13px">Deleting your account removes your wardrobe photos,
+        outfits, plans, laundry history, trips and Prompt Lab data. This cannot be undone.</p>
+        <a class="btn btn-outline-danger" href="{% url 'delete_account' %}">Delete my account</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

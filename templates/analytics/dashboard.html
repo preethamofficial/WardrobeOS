@@ -1,5 +1,105 @@
-{% extends "base.html" %}{% block heading %}Wardrobe analytics{% endblock %}{% block content %}
-<div class="stats-grid"><div class="stat"><span>Pieces</span><b>{{total_items}}</b></div><div class="stat"><span>Total wears</span><b>{{total_wears}}</b></div><div class="stat"><span>Used pieces</span><b>{{used_items}}</b></div></div>
-<div class="analytics-panel"><h3>Never worn</h3>{% for x in never_items %}<span class="tag me-2 mb-2">{{x.name}}</span>{% empty %}<p>Excellent — every item has been used.</p>{% endfor %}</div>
-<div class="analytics-panel"><h3>Top rotation</h3>{% for x in top_items %}<div class="bar-row"><span>{{x.name}}</span><div><i style="width:{{x.wear_count|add:0}}0%"></i></div><b>{{x.wear_count}}</b></div>{% endfor %}</div>
+{% extends "base.html" %}
+{% block title %}Analytics · WardrobeOS{% endblock %}
+{% block eyebrow %}MONEY & SUSTAINABILITY{% endblock %}
+{% block heading %}Wardrobe analytics{% endblock %}
+{% block content %}
+
+<div class="stats-grid">
+  <div class="stat"><span>Pieces</span><b>{{ total_items }}</b><small>{{ used_items }} worn at least once</small></div>
+  <div class="stat"><span>Wardrobe value</span><b>{{ total_value }}</b><small>{{ priced_count }} piece{{ priced_count|pluralize }} priced · {{ value_per_item }} avg</small></div>
+  <div class="stat"><span>Cost per wear</span><b>{% if overall_cpw is not None %}{{ overall_cpw }}{% else %}—{% endif %}</b><small>{{ total_wears }} total wear{{ total_wears|pluralize }}</small></div>
+  <div class="stat"><span>Sustainability</span><b>{{ sustainability }}</b><small>{{ utilization }}% used · {{ balance }}% balanced · {{ laundry_health }}% clean</small></div>
+</div>
+
+<div class="insight-row">
+  <section class="ootd-card">
+    <span class="eyebrow">COST PER WEAR</span>
+    <h3>Where each rupee/rupee of spend lands</h3>
+    <p class="text-muted">Cost per wear = price ÷ times worn. Low numbers mean a purchase earned its keep; high numbers mean money sitting in the closet.</p>
+    {% if best_cpw %}
+      <h4 class="section-label">Best value</h4>
+      {% for row in best_cpw %}
+        <div class="bar-row">
+          <span>{{ row.name }}</span>
+          <div><i style="width:{% widthratio row.wears total_wears 100 %}%"></i></div>
+          <b>{{ row.cpw }}</b>
+        </div>
+      {% endfor %}
+      <h4 class="section-label">Most expensive per wear</h4>
+      {% for row in worst_cpw %}
+        <div class="bar-row">
+          <span>{{ row.name }}</span>
+          <div><i style="width:{% widthratio row.wears total_wears 100 %}%"></i></div>
+          <b>{{ row.cpw }}</b>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty">Add a purchase price to your items and this becomes the most useful page in the app.</div>
+    {% endif %}
+  </section>
+
+  <aside class="dna-card">
+    <span class="eyebrow">SUSTAINABILITY SCORE</span>
+    <h3>{{ sustainability }}/100</h3>
+    <div class="score-ring" style="--pct:{{ sustainability }}"><b>{{ sustainability }}</b><small>/100</small></div>
+    <div class="metric-row"><span>Utilisation 50%</span><div class="bar"><i style="width:{{ utilization }}%"></i></div><b>{{ utilization }}%</b></div>
+    <div class="metric-row"><span>Rotation 30%</span><div class="bar"><i style="width:{{ balance }}%"></i></div><b>{{ balance }}%</b></div>
+    <div class="metric-row"><span>Laundry 20%</span><div class="bar"><i style="width:{{ laundry_health }}%"></i></div><b>{{ laundry_health }}%</b></div>
+    <small class="text-muted">Higher is better: wearing more of what you own, spreading wear evenly, and keeping items available rather than stuck in the basket.</small>
+  </aside>
+</div>
+
+<div class="insight-row">
+  <section class="ootd-card">
+    <span class="eyebrow">SPEND BY CATEGORY</span>
+    <h3>What you actually buy</h3>
+    {% for row in category_rows %}
+      <div class="bar-row">
+        <span>{{ row.name }} <small class="text-muted">×{{ row.count }}</small></span>
+        <div><i style="width:{% widthratio row.count total_items 100 %}%"></i></div>
+        <b>{{ row.value }}</b>
+      </div>
+      <p class="metric-note">{{ row.wears }} wear{{ row.wears|pluralize }} · {% if row.cpw %}cost per wear {{ row.cpw }}{% else %}no price recorded{% endif %}</p>
+    {% empty %}
+      <div class="empty">No items yet.</div>
+    {% endfor %}
+  </section>
+
+  <aside class="dna-card">
+    <span class="eyebrow">VALUE AT RISK</span>
+    <h3>Money not working for you</h3>
+    <ul class="dna-list">
+      <li><b>{{ never_count }}</b> never worn <small>{{ never_value }} tied up</small></li>
+      <li><b>{{ idle_count }}</b> idle {{ idle_days }}+ days <small>{{ idle_value }} tied up</small></li>
+      <li><b>{{ in_laundry }}</b> in the wash <small>unavailable right now</small></li>
+    </ul>
+    {% if idle %}
+      <h4 class="section-label">Longest unused</h4>
+      <ul class="dna-list">
+        {% for x in idle %}<li>{{ x.name }} <small>last worn {{ x.last_worn|date:"j M Y" }}</small></li>{% endfor %}
+      </ul>
+    {% endif %}
+    <a class="btn btn-dark" href="{% url 'recommendations' %}">Get outfit ideas</a>
+  </aside>
+</div>
+
+<section class="analytics-panel">
+  <div class="section-head"><div><span class="eyebrow">ROTATION</span><h3>Most worn pieces</h3></div>
+    <a href="{% url 'wardrobe_list' %}">Manage wardrobe</a></div>
+  {% for x in top_items %}
+    <div class="bar-row">
+      <span>{{ x.name }}</span>
+      <div><i style="width:{% widthratio x.wear_count total_wears 100 %}%"></i></div>
+      <b>{{ x.wear_count }}</b>
+    </div>
+  {% empty %}
+    <div class="empty">Nothing logged yet - use <b>Wear</b> on a wardrobe item to start building history.</div>
+  {% endfor %}
+</section>
+
+<section class="analytics-panel">
+  <h3>Never worn</h3>
+  {% for x in never_items %}<span class="tag me-2 mb-2">{{ x.name }}</span>{% empty %}<p>Excellent — every item has been used.</p>{% endfor %}
+</section>
 {% endblock %}
+

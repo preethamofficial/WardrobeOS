@@ -120,8 +120,12 @@ Great for a demo; use Option B for persistence.
    env vars (SECRET_KEY, LOGIN_REQUIRED=True, Google keys) in the web tab.
 4. Your app stays up with persistent storage - images and SQLite survive.
 
-Both options are free forever for hobby use; the app itself needs no paid
-service (weather is Open-Meteo, colour engine is offline, Google OAuth is free).
+Both have long-standing **free tiers** suitable for hobby use (Render's sleeps
+when idle; PythonAnywhere's is always-on with CPU/memory limits), and the app
+itself needs no paid service - weather is Open-Meteo, the colour engine is
+offline, and Google OAuth is free. Free tiers and their limits are controlled by
+those providers and can change, so treat "free" as their current published
+terms rather than a guarantee; the source code is MIT-licensed.
 
 ## Push to GitHub
 

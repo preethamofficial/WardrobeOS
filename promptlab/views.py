@@ -9,6 +9,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from ai.providers import provider_status
+from config.scoping import (get_scoped, owner_of, scoped_prompts,
+                            scoped_workflow_runs)
 from promptlab.engine.analyzer import analyze_prompt, compare_versions
 from promptlab.engine.mutations import mutate
 from promptlab.engine.optimizer import LEVELS, optimize
@@ -46,7 +48,7 @@ def _opts_from_post(request) -> dict:
 
 
 def lab_dashboard(request):
-    stats = lab_stats()
+    stats = lab_stats(request.user)
     return render(request, "promptlab/dashboard.html",
                   {"stats": stats, "providers": provider_status()})
 
@@ -91,7 +93,7 @@ def analyzer(request):
         compare_with = request.POST.get("compare_with", "").strip()
         if text.strip():
             report = analyze_prompt(text)
-            PromptAnalysis.objects.create(body=text[:20000],
+            PromptAnalysis.objects.create(body=text[:20000], owner=owner_of(request.user),
                                           score=report["score"], report=report)
             if compare_with:
                 comparison = compare_versions(compare_with, text)
@@ -123,7 +125,7 @@ def optimizer(request):
 
 # --- library -------------------------------------------------------------------
 def library(request):
-    prompts = Prompt.objects.all()
+    prompts = scoped_prompts(request.user)
     q = request.GET.get("q", "").strip()
     category = request.GET.get("category", "")
     sort = request.GET.get("sort", "recent")
@@ -146,19 +148,20 @@ def library(request):
         templates = templates.filter(title__icontains=q) | templates.filter(tags__icontains=q)
     if category:
         templates = templates.filter(category=category)
-    recent = Prompt.objects.filter(last_used_at__isnull=False).order_by("-last_used_at")[:4]
+    recent = scoped_prompts(request.user).filter(last_used_at__isnull=False).order_by("-last_used_at")[:4]
     return render(request, "promptlab/library.html", {
         "prompts": prompts, "templates": templates, "q": q,
         "category": category, "sort": sort, "fav_only": fav_only,
         "categories": Prompt.CATEGORIES, "recent": recent})
 
 
+@require_POST
 def template_use(request, pk):
-    """Copy a library template into a new editable prompt."""
+    """Copy a library template into a new editable prompt (POST only - it writes)."""
     template = get_object_or_404(PromptTemplate, pk=pk)
     template.use_count += 1
     template.save(update_fields=["use_count"])
-    prompt = create_prompt(title=template.title, body=template.body,
+    prompt = create_prompt(request.user, title=template.title, body=template.body,
                            category=template.category, tags=template.tags,
                            goal=template.description, source="library")
     prompt.mark_used()
@@ -176,13 +179,14 @@ def prompt_save(request):
     if not body:
         messages.warning(request, "Nothing to save - the prompt is empty.")
         return _safe_redirect(request, "library")
-    prompt = create_prompt(title=title[:160], body=body, category=category, source=source)
+    prompt = create_prompt(request.user, title=title[:160], body=body, category=category,
+                           source=source)
     messages.success(request, f"Saved \"{prompt.title}\" to your library.")
     return redirect("prompt_detail", pk=prompt.pk)
 
 
 def prompt_detail(request, pk):
-    prompt = get_object_or_404(Prompt, pk=pk)
+    prompt = get_scoped(Prompt, request.user, pk=pk)
     versions = prompt.versions.all()
     comparison = None
     a_id = request.GET.get("a")
@@ -200,7 +204,7 @@ def prompt_detail(request, pk):
 @require_POST
 def prompt_edit(request, pk):
     """Editing the body creates a new version - history is preserved."""
-    prompt = get_object_or_404(Prompt, pk=pk)
+    prompt = get_scoped(Prompt, request.user, pk=pk)
     body = request.POST.get("body", "").strip()
     title = request.POST.get("title", "").strip()
     note = request.POST.get("change_note", "").strip() or "Edited"
@@ -220,7 +224,7 @@ def prompt_edit(request, pk):
 
 @require_POST
 def prompt_delete(request, pk):
-    prompt = get_object_or_404(Prompt, pk=pk)
+    prompt = get_scoped(Prompt, request.user, pk=pk)
     title = prompt.title
     prompt.delete()
     messages.success(request, f"Deleted \"{title}\".")
@@ -229,7 +233,7 @@ def prompt_delete(request, pk):
 
 @require_POST
 def prompt_favorite(request, pk):
-    prompt = get_object_or_404(Prompt, pk=pk)
+    prompt = get_scoped(Prompt, request.user, pk=pk)
     prompt.favorite = not prompt.favorite
     prompt.save(update_fields=["favorite"])
     messages.success(request, f"{'★ Added to' if prompt.favorite else 'Removed from'} favorites.")
@@ -250,7 +254,7 @@ def _safe_redirect(request, fallback, *, pk=None):
 
 @require_POST
 def prompt_duplicate(request, pk):
-    prompt = get_object_or_404(Prompt, pk=pk)
+    prompt = get_scoped(Prompt, request.user, pk=pk)
     copy = duplicate_prompt(prompt)
     messages.success(request, f"Duplicated as \"{copy.title}\".")
     return redirect("prompt_detail", pk=copy.pk)
@@ -258,7 +262,7 @@ def prompt_duplicate(request, pk):
 
 @require_POST
 def prompt_use(request, pk):
-    prompt = get_object_or_404(Prompt, pk=pk)
+    prompt = get_scoped(Prompt, request.user, pk=pk)
     prompt.mark_used()
     messages.success(request, "Marked as used - it now appears in Recently used.")
     return redirect("prompt_detail", pk=pk)
@@ -277,7 +281,7 @@ def compare(request):
         if text:
             try:
                 check_rate_limit(request, "compare")
-                outcome = compare_providers(text, selected or None, timeout=60)
+                outcome = compare_providers(request.user, text, selected or None, timeout=60)
                 if not outcome["any_success"]:
                     messages.warning(request,
                                      "No provider returned a response - see the error cards "
@@ -310,7 +314,7 @@ def workflows(request):
                 outcome["steps_display"] = outcome["steps"]
                 name = request.POST.get("name", "").strip()
                 if request.POST.get("save") == "on":
-                    run = save_workflow_run(name, preset, text, outcome)
+                    run = save_workflow_run(request.user, name, preset, text, outcome)
                     messages.success(request, f"Workflow saved as \"{run.name}\".")
                 messages.success(request, f"Workflow completed - final score {outcome['final_score']}/100.")
             except (ValueError, RateLimitExceeded) as exc:
@@ -319,7 +323,9 @@ def workflows(request):
             messages.warning(request, "Enter the text or prompt to run through the workflow.")
     return render(request, "promptlab/workflows.html",
                   {"presets": PRESETS, "text": text, "preset": preset,
-                   "use_ai": use_ai, "outcome": outcome, "error": error})
+                   "use_ai": use_ai, "outcome": outcome, "error": error,
+                   # Saved history, scoped to the signed-in account only.
+                   "runs": scoped_workflow_runs(request.user)[:12]})
 
 
 # --- JSON API (for fetch-based UI) ---------------------------------------------------

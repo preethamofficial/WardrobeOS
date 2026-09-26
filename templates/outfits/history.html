@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Saved outfits · WardrobeOS{% endblock %}
+{% block heading %}Saved outfits{% endblock %}
+{% block content %}
+<div class="section-head">
+  <div><span class="eyebrow">OUTFIT HISTORY</span><h3>Combinations you kept</h3>
+    <p class="text-muted">Wear them, favourite them, tell the stylist what worked.</p></div>
+</div>
+
+<div class="stats-grid">
+  <div class="stat"><span>Saved</span><b>{{ stats.total }}</b><small>outfits in your history</small></div>
+  <div class="stat"><span>Favourites</span><b>{{ stats.favorites }}</b><small>starred for quick access</small></div>
+  <div class="stat"><span>Total wears</span><b>{{ stats.wears }}</b><small>logged across saved outfits</small></div>
+  <div class="stat"><span>Avg score</span><b>{{ stats.avg_score }}</b><small>stylist score at save time</small></div>
+</div>
+
+<div class="chips">
+  <a href="{% url 'outfit_history' %}" class="{% if not occasion and not favorites_only %}active{% endif %}">All</a>
+  <a href="{% url 'outfit_history' %}?favorites=1" class="{% if favorites_only %}active{% endif %}">★ Favourites</a>
+  {% for o in occasions %}<a href="{% url 'outfit_history' %}?occasion={{ o|urlencode }}" class="{% if occasion == o %}active{% endif %}">{{ o|title }}</a>{% endfor %}
+</div>
+
+<div class="recommend-grid">
+  {% for outfit in outfits %}
+  <article class="outfit-card">
+    <div class="score-circle">{{ outfit.score|floatformat:0 }}<small>/100</small></div>
+    {% if outfit.favorite %}<span class="tag" title="Favourite">★ favourite</span>{% endif %}
+    <div class="outfit-items">
+      {% for item in outfit.items.all %}
+      <div class="outfit-item">
+        {% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">
+        {% else %}<span>👕</span>{% endif %}
+        <b>{{ item.name }}</b><small>{{ item.get_category_display }}{% if item.color %} · {{ item.color }}{% endif %}</small>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-muted">
+      {% if outfit.occasion %}{{ outfit.occasion|title }} · {% endif %}
+      worn {{ outfit.wear_count }}×{% if outfit.last_worn %} · last {{ outfit.last_worn|date:"j M" }}{% endif %}
+      {% with fb=outfit.feedback_summary %}{% if fb.total %} · {{ fb.likes }}👍 {{ fb.dislikes }}👎{% endif %}{% endwith %}
+    </p>
+    <div class="stacked-actions">
+      <form method="post" action="{% url 'mark_outfit_worn' outfit.pk %}" class="inline-form">{% csrf_token %}
+        <button class="btn btn-dark w-100" type="submit"
+                title="Wear it now - updates rotation, last-worn and laundry for every item">👕 I wore this</button></form>
+      <form method="post" action="{% url 'favorite_outfit' outfit.pk %}" class="inline-form">{% csrf_token %}
+        <button class="btn btn-outline-secondary w-100" type="submit"
+                title="{% if outfit.favorite %}Remove from favourites{% else %}Add to favourites{% endif %}"
+                aria-label="{% if outfit.favorite %}Remove {{ outfit.name }} from favourites{% else %}Add {{ outfit.name }} to favourites{% endif %}">
+          {% if outfit.favorite %}★ Favourited{% else %}☆ Favourite{% endif %}</button></form>
+      <a class="btn btn-outline-secondary w-100" href="{% url 'outfit_feedback' outfit.pk %}">✎ Feedback</a>
+      <form method="post" action="{% url 'delete_outfit' outfit.pk %}" class="inline-form"
+            onsubmit="return confirm('Delete this saved outfit?');">{% csrf_token %}
+        <button class="btn btn-ghost w-100" type="submit" title="Delete this saved outfit"
+                aria-label="Delete {{ outfit.name }}">🗑 Delete</button></form>
+    </div>
+  </article>
+  {% empty %}
+  <div class="empty">Nothing saved yet - build a look in <a href="{% url 'recommendations' %}">AI Stylist</a> and hit “Save outfit”.</div>
+  {% endfor %}
+</div>
+{% endblock %}

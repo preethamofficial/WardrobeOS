@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}{{ trip.name }} · Trips{% endblock %}
+{% block eyebrow %}TRIPS · {{ trip.destination|upper }}{% endblock %}
+{% block heading %}{{ trip.name }}{% endblock %}
+{% block content %}
+<div class="hero-card compact">
+  <div>
+    <span class="badge-soft">{{ trip.start_date }} → {{ trip.end_date }}</span>
+    <h2>{{ trip.destination }}</h2>
+    <p>{{ trip.nights }} night{{ trip.nights|pluralize }} · {{ trip.packing|length }} item{{ trip.packing|length|pluralize }} on the list
+      {% if trip.lat is None %} · destination not found, weather-based suggestions skipped{% endif %}</p>
+  </div>
+  <div class="hero-icon">⌁</div>
+</div>
+
+<div class="trip-actions">
+  <a class="btn btn-dark" href="{% url 'trip_edit' trip.pk %}">✎ Edit trip</a>
+  <form method="post" action="{% url 'trip_refresh' trip.pk %}" class="inline-form">{% csrf_token %}
+    <button class="btn btn-ghost" type="submit" title="Rebuild from your current wardrobe and forecast">⟳ Rebuild list</button>
+  </form>
+  <form method="post" action="{% url 'trip_delete' trip.pk %}" class="inline-form"
+        onsubmit="return confirm('Delete “{{ trip.name|escapejs }}”? This cannot be undone.');">{% csrf_token %}
+    <button class="btn btn-ghost danger" type="submit">🗑 Delete trip</button>
+  </form>
+  <a class="btn btn-ghost" href="{% url 'trips' %}">← All trips</a>
+</div>
+
+<div class="progress-block">
+  <div class="progress-label"><b>Packing progress</b><span>{{ trip.packed_count }}/{{ trip.packing|length }} packed · {{ trip.pack_progress }}%</span></div>
+  <div class="progress-track"><div class="progress-fill" style="width:{{ trip.pack_progress }}%"></div></div>
+</div>
+
+<div class="insight-row">
+  <section class="ootd-card">
+    <div class="section-head"><div><span class="eyebrow">PACKING LIST</span><h3>Check items off as you pack</h3></div></div>
+    {% for kind, entries in grouped.items %}
+      <div class="pack-group">
+        <h4 class="pack-kind">{{ kind|title }}</h4>
+        {% for entry in entries %}
+        <form method="post" action="{% url 'trip_toggle' trip.pk entry.index %}" class="pack-row {% if entry.packed %}packed{% endif %}">{% csrf_token %}
+          <button type="submit" class="pack-check" aria-label="{% if entry.packed %}Unpack{% else %}Mark packed{% endif %} {{ entry.name }}" title="Toggle packed">
+            {% if entry.packed %}✓{% else %}○{% endif %}
+          </button>
+          <span class="pack-name">{{ entry.name }}</span>
+          <span class="tag">×{{ entry.qty }}</span>
+        </form>
+        {% endfor %}
+      </div>
+    {% empty %}
+      <div class="empty">Nothing on the list yet - rebuild it from your wardrobe.</div>
+    {% endfor %}
+  </section>
+
+  <aside class="dna-card">
+    <span class="eyebrow">FORECAST</span>
+    <h3>Weather in {{ trip.destination }}</h3>
+    {% if days %}
+      <ul class="forecast-list">
+        {% for d in days %}<li><span>{{ d.date }}</span><span>{{ d.emoji }} {{ d.label }}</span><small>{% if d.min is not None %}{{ d.min|floatformat:0 }}°–{{ d.max|floatformat:0 }}°{% endif %}</small></li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">No forecast available for these dates (forecasts cover roughly the next two weeks).</p>
+    {% endif %}
+    {% if trip.notes %}<hr><span class="eyebrow">NOTES</span><p>{{ trip.notes|linebreaksbr }}</p>{% endif %}
+    <small class="text-muted">Weather data: Open-Meteo (free, no key).</small>
+  </aside>
+</div>
+{% endblock %}
