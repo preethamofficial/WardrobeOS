@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block heading %}Delete item{% endblock %}{% block content %}
+<div class="form-card"><p>Delete <b>{{item.name}}</b>?</p><form method="post">{% csrf_token %}<button class="btn btn-danger">Delete</button></form></div>{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Prompt Library · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · LIBRARY{% endblock %}
+{% block heading %}Your prompts & templates{% endblock %}
+{% block content %}
+<div class="toolbar">
+  <form class="search" method="get">
+    <input name="q" value="{{ q }}" placeholder="Search prompts, bodies and tags…">
+    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+    <button>⌕</button>
+  </form>
+  <a class="btn btn-dark" href="/lab/studio/">＋ New prompt</a>
+</div>
+
+<div class="chips">
+  <a href="?{% if q %}q={{ q }}&{% endif %}" class="{% if not category and not fav_only %}active{% endif %}">All</a>
+  <a href="?{% if q %}q={{ q }}&{% endif %}favorites=1" class="{% if fav_only %}active{% endif %}">★ Favorites</a>
+  {% for c, v in categories %}
+  <a href="?{% if q %}q={{ q }}&{% endif %}category={{ c }}" class="{% if category == c %}active{% endif %}">{{ v }}</a>
+  {% endfor %}
+</div>
+
+<div class="toolbar" style="justify-content:flex-start">
+  <form method="get" style="display:flex;gap:8px;align-items:center">
+    {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+    {% if category %}<input type="hidden" name="category" value="{{ category }}">{% endif %}
+    <label class="section-label" for="sort">Sort</label>
+    <select name="sort" id="sort" onchange="this.form.submit()" style="padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink)">
+      <option value="recent" {% if sort == 'recent' %}selected{% endif %}>Recently updated</option>
+      <option value="name" {% if sort == 'name' %}selected{% endif %}>Name (A-Z)</option>
+      <option value="used" {% if sort == 'used' %}selected{% endif %}>Most used</option>
+      <option value="score" {% if sort == 'score' %}selected{% endif %}>Highest score</option>
+    </select>
+  </form>
+</div>
+
+<div class="section-head"><div><span class="eyebrow">MY PROMPTS</span><h3>{{ prompts|length }} saved prompt(s)</h3></div></div>
+<div class="card-grid">
+  {% for p in prompts %}
+  <article class="mini-card" style="align-items:flex-start;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;width:100%">
+      <b><a href="/lab/prompts/{{ p.pk }}/" style="color:var(--ink);text-decoration:none">{{ p.title }}</a>
+        {% if p.favorite %}<span title="Favorite">★</span>{% endif %}</b>
+      <span class="badge-soft">{{ p.get_category_display }}</span>
+    </div>
+    <small class="muted">{{ p.body|truncatechars:110 }}</small>
+    <div class="action-chips">
+      <form method="post" action="/lab/prompts/{{ p.pk }}/favorite/" style="display:contents">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button title="Toggle favorite" style="padding:5px 10px">★</button></form>
+      <form method="post" action="/lab/prompts/{{ p.pk }}/duplicate/" style="display:contents">{% csrf_token %}
+        <button title="Duplicate" style="padding:5px 10px">⧉ Duplicate</button></form>
+      <form method="post" action="/lab/prompts/{{ p.pk }}/delete/" style="display:contents"
+        data-confirm="Delete “{{ p.title }}” and all its versions?">{% csrf_token %}
+        <button title="Delete" style="padding:5px 10px">🗑</button></form>
+    </div>
+  </article>
+  {% empty %}
+  <div class="empty">No prompts found. <a href="/lab/studio/">Generate one</a> or copy a template below.</div>
+  {% endfor %}
+</div>
+
+{% if recent %}
+<div class="section-head"><div><span class="eyebrow">ACTIVITY</span><h3>Recently used</h3></div></div>
+<div class="chips">{% for p in recent %}<a href="/lab/prompts/{{ p.pk }}/">{{ p.title }}</a>{% endfor %}</div>
+{% endif %}
+
+<div class="section-head"><div><span class="eyebrow">TEMPLATE LIBRARY</span><h3>{{ templates|length }} curated template(s)</h3></div></div>
+<div class="card-grid">
+  {% for t in templates %}
+  <article class="mini-card" style="align-items:flex-start;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;width:100%">
+      <b>{{ t.title }}</b><span class="badge-soft">{{ t.get_category_display }}</span></div>
+    <small class="muted">{{ t.description }}</small>
+    <small class="muted" style="font-size:11px">Techniques: {{ t.technique }}</small>
+    <div class="action-chips">
+      <a class="btn btn-ghost" style="padding:6px 12px;font-size:12px" href="/lab/templates/{{ t.pk }}/use/">Use template →</a>
+    </div>
+  </article>
+  {% empty %}<div class="empty">No templates match your search.</div>
+  {% endfor %}
+</div>
+{% endblock %}

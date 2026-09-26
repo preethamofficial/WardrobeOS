@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}{{ prompt.title }} · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · LIBRARY{% endblock %}
+{% block heading %}{{ prompt.title }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <div>
+      <span class="badge-soft">{{ prompt.get_category_display }}</span>
+      <span class="badge-soft">{{ prompt.get_source_display }}</span>
+      {% if prompt.current_score is not None %}<span class="badge-ok">v{{ prompt.latest_version.version_number }} · {{ prompt.current_score }}/100</span>{% endif %}
+      <small class="muted" style="margin-left:8px">Used {{ prompt.use_count }}×</small>
+    </div>
+    <div class="action-chips" style="margin:0">
+      <form method="post" action="{% url 'prompt_favorite' prompt.pk %}" style="display:contents">{% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">{% if prompt.favorite %}★ Unfavorite{% else %}☆ Favorite{% endif %}</button></form>
+      <form method="post" action="{% url 'prompt_use' prompt.pk %}" style="display:contents">{% csrf_token %}
+        <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">✓ Mark used</button></form>
+      <form method="post" action="{% url 'prompt_duplicate' prompt.pk %}" style="display:contents">{% csrf_token %}
+        <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">⧉ Duplicate</button></form>
+      <form method="post" action="{% url 'prompt_delete' prompt.pk %}" style="display:contents"
+        data-confirm="Delete “{{ prompt.title }}” and all its versions?">{% csrf_token %}
+        <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">🗑 Delete</button></form>
+    </div>
+  </div>
+  <form method="post" action="{% url 'prompt_edit' prompt.pk %}" class="lab-form" style="margin-top:14px">{% csrf_token %}
+    <label>Title</label><input name="title" value="{{ prompt.title }}">
+    <label>Prompt body — saving creates a new version, nothing is overwritten</label>
+    <textarea name="body" id="detail-body" style="min-height:220px">{{ prompt.body }}</textarea>
+    <div class="form-row">
+      <div><label>Category</label><select name="category_unused" disabled>
+        {% for c, v in categories %}<option value="{{ c }}" {% if prompt.category == c %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      <div><label>Change note</label><input name="change_note" placeholder="What did you change?"></div>
+    </div>
+    <div class="action-chips" style="margin-top:12px">
+      <button type="button" data-copy="#detail-body">⧉ Copy prompt</button>
+      <button class="btn btn-accent" style="padding:7px 16px">💾 Save new version</button>
+      <a class="btn btn-ghost" style="padding:7px 13px;font-size:12px" href="/lab/analyze/">◔ Analyze</a>
+    </div>
+  </form>
+</div>
+
+<div class="panel">
+  <h3>Version history</h3>
+  {% for v in versions %}
+  <div class="provider-card" style="margin:10px 0">
+    <div class="provider-head"><b>v{{ v.version_number }}</b>
+      <span>{% if v.score %}<span class="badge-ok">{{ v.score|floatformat:0 }}/100</span>{% endif %}
+      <small class="muted">{{ v.created_at|date:"M d, H:i" }}</small></span></div>
+    {% if v.change_note %}<p class="muted" style="font-size:12px;margin:2px 0 6px">{{ v.change_note }}</p>{% endif %}
+    <details><summary class="section-label" style="cursor:pointer">View this version</summary>
+      <div class="prompt-box mono" style="margin-top:8px">{{ v.body }}</div></details>
+    <form method="get" style="margin-top:8px;display:flex;gap:8px;align-items:center">
+      <label class="section-label">Compare with</label>
+      <select name="b" onchange="this.form.a.value={{ v.version_number }};this.form.submit()"
+        style="padding:7px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)">
+        <option value="">— pick a version —</option>
+        {% for other in versions %}{% if other.version_number != v.version_number %}
+        <option value="{{ other.version_number }}">v{{ other.version_number }}</option>{% endif %}{% endfor %}
+      </select>
+      <input type="hidden" name="a" value="{{ v.version_number }}">
+    </form>
+  </div>
+  {% empty %}<div class="empty">No versions recorded.</div>
+  {% endfor %}
+
+  {% if comparison %}
+  <h3 style="margin-top:16px">Comparison: v{{ a }} → v{{ b }}</h3>
+  <p><b>{{ comparison.summary }}</b></p>
+  <div class="metric-row"><span>Overall</span><div class="bar"><i style="width:{{ comparison.score_after }}%"></i></div><b>{{ comparison.score_before }} → {{ comparison.score_after }}</b></div>
+  {% for metric, delta in comparison.improved.items %}
+  <div class="metric-row"><span>▲ {{ metric }}</span><div class="bar"><i style="width:{% widthratio delta 40 100 %}%"></i></div><b>+{{ delta }}</b></div>
+  {% endfor %}
+  {% for metric, delta in comparison.declined.items %}
+  <div class="metric-row"><span>▼ {{ metric }}</span><div class="bar"><i style="width:{% widthratio delta -40 100 %}%"></i></div><b>{{ delta }}</b></div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

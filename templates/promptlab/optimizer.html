@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Optimizer · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · OPTIMIZER{% endblock %}
+{% block heading %}Weak prompt in, professional prompt out{% endblock %}
+{% block content %}
+<div class="panel">
+  <form method="post" class="lab-form">{% csrf_token %}
+    <label for="text">Weak or basic prompt</label>
+    <textarea id="text" name="text" style="min-height:140px" placeholder="e.g. write something about our product">{{ original }}</textarea>
+    <label>Optimization level</label>
+    <div class="action-chips" style="margin:6px 0 14px">
+      {% for key, spec in levels.items %}
+      <button type="submit" name="level" value="{{ key }}" title="{{ spec.description }}"
+        class="{% if level == key %}btn-accent{% endif %}">{{ spec.label }}</button>
+      {% endfor %}
+    </div>
+    <p class="muted" style="font-size:12px;margin:0">
+      {% if level == "basic" %}Fixes clarity and adds the missing core sections.
+      {% elif level == "professional" %}Full role/context/constraints/format structure with XML delimiters.
+      {% elif level == "expert" %}Professional structure + negative constraints, quality bar and edge cases.
+      {% else %}Expert structure + task decomposition, self-check and instruction priority.{% endif %}
+      You can also pick a level after entering the prompt — every chip submits.
+    </p>
+  </form>
+</div>
+
+{% if outcome %}
+<div class="panel">
+  <div class="tier-head" style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:0">{{ outcome.level_label }} optimization</h3>
+    <span class="badge-ok">{{ outcome.score_before }} → {{ outcome.score_after }}/100</span>
+  </div>
+  <div class="prompt-box mono" id="opt-box" style="margin-top:12px">{{ outcome.optimized }}</div>
+  <div class="action-chips">
+    <button type="button" data-copy="#opt-box">⧉ Copy optimized prompt</button>
+    <form method="post" action="{% url 'prompt_save' %}" style="display:contents">{% csrf_token %}
+      <input type="hidden" name="body" value="{{ outcome.optimized }}">
+      <input type="hidden" name="title" value="Optimized ({{ outcome.level_label }}): {{ original|truncatechars:50 }}">
+      <input type="hidden" name="source" value="optimizer">
+      <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">💾 Save</button>
+    </form>
+  </div>
+</div>
+
+<div class="tier-grid">
+  <div class="tier-card"><h4>What was missing</h4>
+    <ul class="why-list">{% for m in outcome.missing_info %}<li>{{ m }}</li>{% empty %}<li>Nothing critical missing.</li>{% endfor %}</ul></div>
+  <div class="tier-card"><h4>Assumptions policy</h4>
+    <ul class="why-list">{% for a in outcome.assumptions %}<li>{{ a }}</li>{% endfor %}</ul></div>
+  <div class="tier-card"><h4>Techniques applied</h4>
+    <p>{% for t in outcome.techniques %}<span class="tag" style="margin:2px">{{ t }}</span>{% endfor %}</p>
+    <p class="muted" style="font-size:12px">Detected intent: <b>{{ outcome.intent_label }}</b></p></div>
+  <div class="tier-card"><h4>Why this is better</h4>
+    <ul class="why-list">{% for w in outcome.why %}<li>{{ w }}</li>{% endfor %}</ul></div>
+</div>
+{% endif %}
+{% endblock %}

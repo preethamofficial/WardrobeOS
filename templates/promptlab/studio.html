@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Prompt Generator · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · GENERATOR{% endblock %}
+{% block heading %}Turn a simple idea into a professional prompt{% endblock %}
+{% block content %}
+<div class="panel">
+  <form method="post" class="lab-form">{% csrf_token %}
+    <label for="idea">Your simple idea</label>
+    <textarea id="idea" name="idea" placeholder="e.g. write a linkedin post about our new app release" >{{ idea }}</textarea>
+    <div class="form-row">
+      <div><label>Audience (optional)</label><input name="audience" value="" placeholder="e.g. beginner developers"></div>
+      <div><label>Tone</label><select name="tone"><option value="">Auto-detect</option>
+        <option>professional</option><option>friendly</option><option>casual</option>
+        <option>academic</option><option>persuasive</option><option>neutral</option><option>humorous</option></select></div>
+      <div><label>Language</label><input name="language" placeholder="English (default)"></div>
+      <div><label>Output format</label><select name="output_format"><option value="">Auto (by task)</option>
+        <option value="markdown">Markdown</option><option value="json">JSON</option><option value="table">Table</option>
+        <option value="bullets">Bullet points</option><option value="numbered">Numbered list</option></select></div>
+    </div>
+    <label>Extra constraints (one per line, optional)</label>
+    <textarea name="constraints" style="min-height:70px" placeholder="Maximum 200 words&#10;Use UK English"></textarea>
+    <label>Optional example (few-shot)</label>
+    <textarea name="examples" style="min-height:70px" placeholder="Paste an example of the style/output you want"></textarea>
+    <div style="margin-top:14px"><button class="btn btn-accent">Generate prompts ⌘⏎</button>
+      <a href="/lab/studio/" class="btn btn-ghost">Reset</a></div>
+  </form>
+</div>
+
+{% if error %}<div class="empty">⚠ {{ error }}</div>{% endif %}
+
+{% if tiers %}
+<div class="section-head"><div><span class="eyebrow">RESULTS</span><h3>Four tiers, ready to copy</h3></div></div>
+<div class="tier-grid">
+  {% for key, t in tiers.items %}
+  <article class="tier-card">
+    <div class="tier-head"><h4>{{ t.tier_label }} prompt</h4>
+      <span class="badge-soft">{{ t.analysis.score }}/100</span></div>
+    <div class="prompt-box mono" id="box-{{ key }}">{{ t.prompt }}</div>
+    <div class="action-chips">
+      <button type="button" data-copy="#box-{{ key }}">⧉ Copy</button>
+      <form method="post" action="{% url 'prompt_save' %}" style="display:contents">
+        {% csrf_token %}
+        <input type="hidden" name="body" value="{{ t.prompt }}">
+        <input type="hidden" name="title" value="{{ idea|truncatechars:60 }}">
+        <input type="hidden" name="source" value="studio">
+        <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">💾 Save</button>
+      </form>
+      <a class="btn btn-ghost" style="padding:7px 13px;font-size:12px" href="/lab/analyze/">◔ Analyze</a>
+    </div>
+    <details style="margin-top:10px"><summary class="section-label" style="cursor:pointer">Why this prompt is better</summary>
+      <ul class="why-list">{% for w in t.why_better %}<li>{{ w }}</li>{% endfor %}</ul>
+      {% if t.improvements %}<ul class="why-list">{% for imp in t.improvements %}
+        <li><b>{{ imp.title }}</b> — {{ imp.detail }}</li>{% endfor %}</ul>{% endif %}
+    </details>
+  </article>
+  {% endfor %}
+</div>
+
+<div class="panel" style="margin-top:18px">
+  <h3>Refine any prompt</h3>
+  <form method="post" class="lab-form">{% csrf_token %}
+    <label for="mutate-body">Working box (paste any prompt, then apply an action)</label>
+    <textarea id="mutate-body" name="body" style="min-height:160px" placeholder="Paste a prompt here to mutate it">{{ active_body }}</textarea>
+    <label>Apply action</label>
+    <div class="action-chips" style="margin:6px 0 12px">
+      {% for value, label in mutations %}
+      <button type="submit" name="mutation" value="{{ value }}">{{ label }}</button>
+      {% endfor %}
+    </div>
+    <button class="btn btn-ghost">Apply selection above</button>
+  </form>
+
+  {% if active_body %}
+  <form method="post" action="{% url 'prompt_save' %}" class="lab-form" style="margin-top:14px">
+    {% csrf_token %}
+    <input type="hidden" name="body" value="{{ active_body }}">
+    <input type="hidden" name="source" value="studio">
+    <input type="hidden" name="next" value="{% url 'studio' %}">
+    <div class="form-row">
+      <div><label>Title</label><input name="title" placeholder="Name this prompt" value="{{ idea|truncatechars:60 }}"></div>
+      <div><label>Category</label><select name="category">
+        {% for c, v in categories %}<option value="{{ c }}">{{ v }}</option>{% endfor %}</select></div>
+    </div>
+    <div style="margin-top:12px"><button class="btn btn-accent">💾 Save working prompt to library</button></div>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Compare AI · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · COMPARE{% endblock %}
+{% block heading %}One prompt, multiple AI providers{% endblock %}
+{% block content %}
+<div class="panel">
+  <form method="post" class="lab-form">{% csrf_token %}
+    <label for="text">Prompt to send</label>
+    <textarea id="text" name="text" style="min-height:140px"
+      placeholder="Paste the prompt you want every configured provider to answer">{{ text }}</textarea>
+    <label>Providers (leave all unchecked to use every configured one)</label>
+    {% for p in providers %}
+    {% if 'text' in p.capabilities %}
+    <label style="display:flex;align-items:center;gap:8px;font-weight:600;margin:6px 0">
+      <input type="checkbox" name="providers" value="{{ p.id }}" style="width:auto"
+        {% if selected and p.id in selected %}checked{% endif %}>
+      <span class="status-dot {{ p.configured|yesno:'ok,off' }}"></span> {{ p.label }}
+      <small class="muted">({{ p.model }}){% if not p.configured %} — needs {{ p.key_env }}{% endif %}</small>
+    </label>
+    {% endif %}
+    {% endfor %}
+    <div style="margin-top:14px"><button class="btn btn-accent">⇄ Run comparison</button>
+      <small class="muted" style="margin-left:10px">One request per selected provider. Rate limited to protect your quota.</small></div>
+  </form>
+</div>
+
+{% if outcome %}
+<div class="compare-grid">
+  {% for r in outcome.results %}
+  <article class="provider-card">
+    <div class="provider-head"><b>{{ r.label }}</b>
+      {% if r.ok %}<span class="badge-ok">Success</span>{% else %}<span class="badge-err">{{ r.error_code|default:"Error" }}</span>{% endif %}
+    </div>
+    <div class="provider-meta">Model: {{ r.model }} · {{ r.latency_ms }}ms
+      {% if r.usage %} · tokens: {{ r.usage.total_tokens|default:r.usage.totalTokenCount|default:"—" }}{% endif %}</div>
+    {% if r.ok %}
+      <div class="prompt-box mono" id="resp-{{ forloop.counter0 }}" style="max-height:340px">{{ r.text }}</div>
+      <div class="action-chips">
+        <button type="button" data-copy="#resp-{{ forloop.counter0 }}">⧉ Copy</button>
+        <form method="post" action="{% url 'prompt_save' %}" style="display:contents">{% csrf_token %}
+          <input type="hidden" name="body" value="{{ r.text }}">
+          <input type="hidden" name="title" value="Response from {{ r.label }}">
+          <input type="hidden" name="source" value="manual">
+          <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">💾 Save as prompt</button>
+        </form>
+      </div>
+    {% else %}
+      <div class="empty" style="padding:18px">⚠ {{ r.error }}</div>
+    {% endif %}
+  </article>
+  {% empty %}<div class="empty">No configured text providers found. Add an API key (e.g. GROQ_API_KEY) to your .env file.</div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

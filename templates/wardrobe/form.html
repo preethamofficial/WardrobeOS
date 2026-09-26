@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block heading %}{{title}}{% endblock %}
+{% block content %}
+<div class="form-card wide">
+<p class="text-muted">Fill the details or just upload a clear clothing photo. Colours, colour family and pattern are detected <b>offline</b> automatically - leave <b>colour</b> and <b>pattern</b> blank and the engine will name them for you.</p>
+<div class="form-layout">
+<form method="post" enctype="multipart/form-data" class="form-fields">{% csrf_token %}
+{{form.as_p}}
+<button class="btn btn-dark">Save clothing</button> <a href="/wardrobe/" class="btn btn-outline-secondary">Cancel</a></form>
+<div class="preview-col">
+<div class="preview-box"><span id="preview-empty">📷 Photo preview</span><img id="image-preview" alt="Selected photo preview" hidden></div>
+<div class="preview-note">Tip: a plain background with the garment centred gives the most accurate colour detection.</div>
+</div></div></div>
+{% endblock %}

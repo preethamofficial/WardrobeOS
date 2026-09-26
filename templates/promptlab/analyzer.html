@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Analyzer · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · ANALYZER{% endblock %}
+{% block heading %}Score any prompt across 12 metrics{% endblock %}
+{% block content %}
+<div class="panel">
+  <form method="post" class="lab-form">{% csrf_token %}
+    <label for="text">Prompt to analyze</label>
+    <textarea id="text" name="text" style="min-height:160px" placeholder="Paste your prompt here…">{{ text }}</textarea>
+    <label for="compare_with">Optional: compare against an earlier version</label>
+    <textarea id="compare_with" name="compare_with" style="min-height:90px" placeholder="Paste the older version here to see what changed">{{ compare_with }}</textarea>
+    <div style="margin-top:14px"><button class="btn btn-accent">Analyze prompt ⌘⏎</button></div>
+  </form>
+</div>
+
+{% if report %}
+<div class="panel">
+  <div style="display:flex;gap:24px;align-items:center;flex-wrap:wrap">
+    <div class="score-ring" style="--pct:{{ report.score }}"><div style="text-align:center"><b>{{ report.score }}</b><small>/100 · {{ report.band }}</small></div></div>
+    <div style="flex:1;min-width:260px">
+      <div class="section-label">Strengths</div>
+      <ul class="why-list">{% for s in report.strengths %}<li>✓ {{ s }}</li>{% empty %}<li>None yet</li>{% endfor %}</ul>
+      <div class="section-label" style="margin-top:10px">Weaknesses</div>
+      <ul class="why-list">{% for w in report.weaknesses %}<li>△ {{ w }}</li>{% endfor %}</ul>
+    </div>
+  </div>
+  <hr style="border-color:var(--line)">
+  <div class="section-label">Metric breakdown</div>
+  {% for name, m in report.metrics.items %}
+  <div class="metric-row"><span>{{ name|title }}</span><div class="bar"><i style="width:{{ m.score }}%"></i></div><b>{{ m.score }}</b></div>
+  <p class="metric-note">{{ m.note }}</p>
+  {% endfor %}
+</div>
+
+<div class="tier-grid">
+  <div class="tier-card"><h4>Missing information</h4>
+    <ul class="why-list">{% for m in report.missing %}<li>{{ m }}</li>{% empty %}<li>Nothing critical missing.</li>{% endfor %}</ul></div>
+  <div class="tier-card"><h4>Suggested improvements</h4>
+    <ul class="why-list">{% for s in report.suggestions %}<li>{{ s }}</li>{% endfor %}</ul></div>
+</div>
+
+<div class="panel" style="margin-top:18px">
+  <h3>Act on this analysis</h3>
+  <form method="post" action="{% url 'optimizer' %}">{% csrf_token %}
+    <input type="hidden" name="text" value="{{ text }}">
+    <input type="hidden" name="level" value="professional">
+    <button class="btn btn-accent">⚡ Optimize this prompt automatically</button>
+  </form>
+  <form method="post" action="{% url 'prompt_save' %}" style="margin-top:10px">{% csrf_token %}
+    <input type="hidden" name="body" value="{{ text }}">
+    <input type="hidden" name="next" value="{% url 'analyzer' %}">
+    <input type="hidden" name="title" value="Analyzed prompt {{ report.score }}/100">
+    <button class="btn btn-ghost">💾 Save to library</button>
+  </form>
+</div>
+{% endif %}
+
+{% if comparison %}
+<div class="panel">
+  <h3>Version comparison</h3>
+  <p><b>{{ comparison.summary }}</b></p>
+  <div class="metric-row"><span>Score</span><div class="bar"><i style="width:{{ comparison.score_after }}%"></i></div><b>{{ comparison.score_before }} → {{ comparison.score_after }}</b></div>
+  {% for metric, delta in comparison.improved.items %}
+  <div class="metric-row"><span>▲ {{ metric }}</span><div class="bar"><i style="width:{% widthratio delta 40 100 %}%"></i></div><b>+{{ delta }}</b></div>
+  {% endfor %}
+  {% for metric, delta in comparison.declined.items %}
+  <div class="metric-row"><span>▼ {{ metric }}</span><div class="bar"><i style="width:{% widthratio delta -40 100 %}%"></i></div><b>{{ delta }}</b></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

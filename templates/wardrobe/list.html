@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block heading %}My wardrobe{% endblock %}
+{% block content %}
+<div class="toolbar"><form class="search"><input name="q" value="{{q}}" placeholder="Search your wardrobe...">
+<input type="hidden" name="category" value="{{selected}}"><input type="hidden" name="status" value="{{selected_status}}">
+<button>⌕</button></form>
+<a class="btn btn-dark" href="/wardrobe/add/">＋ Add clothing</a></div>
+<div class="chips"><a href="/wardrobe/">All</a>{% for c,v in categories %}<a href="?category={{c}}{% if q %}&amp;q={{q}}{% endif %}" class="{% if selected == c %}active{% endif %}">{{v}}</a>{% endfor %}</div>
+<div class="chips"><a href="/wardrobe/{% if q %}?q={{q}}{% endif %}" class="{% if not selected_status %}active{% endif %}">Any status</a>
+{% for s,v in statuses %}<a href="?status={{s}}{% if q %}&amp;q={{q}}{% endif %}" class="{% if selected_status == s %}active{% endif %}">{{v}}</a>{% endfor %}</div>
+<div class="wardrobe-grid">{% for item in items %}<article class="clothing-card">
+<div class="photo">{% if item.display_image %}<img src="{{item.display_image}}" loading="lazy" alt="{{item.name}}">{% else %}<span>👕</span>{% endif %}<span class="status">{{item.get_status_display}}</span></div>
+<div class="clothing-info"><div><h4>{{item.name}}</h4><small>{{item.get_category_display}} · {{item.formality}}{% if item.pattern and item.pattern != "solid" %} · {{item.pattern}}{% endif %}</small></div>
+<div class="tag color-tag">{% if item.primary_color.0 %}<span class="swatch" style="background:{{item.primary_color.0}}"></span>{{item.primary_color.1}}{% else %}{{item.color|default:"Colour not set"}}{% endif %}</div>
+<div class="wear-row"><span>↻ {{item.wear_count}} wears</span>
+<span class="row-actions"><form method="post" action="/wardrobe/{{item.id}}/rescan/" class="inline-form" title="Re-detect colours from the photo">{% csrf_token %}<button class="link-btn">⟳</button></form><a href="/wardrobe/{{item.id}}/edit/">Edit</a></span></div></div></article>
+{% empty %}<div class="empty">No clothing found. Add your wardrobe to unlock recommendations.</div>{% endfor %}</div>
+{% if page_obj.paginator.num_pages > 1 %}<div class="pagination-row">
+{% if page_obj.has_previous %}<a class="pg" href="?page={{page_obj.previous_page_number}}{% if q %}&amp;q={{q}}{% endif %}{% if selected %}&amp;category={{selected}}{% endif %}{% if selected_status %}&amp;status={{selected_status}}{% endif %}">← Prev</a>{% endif %}
+<span>Page {{page_obj.number}} / {{page_obj.paginator.num_pages}}</span>
+{% if page_obj.has_next %}<a class="pg" href="?page={{page_obj.next_page_number}}{% if q %}&amp;q={{q}}{% endif %}{% if selected %}&amp;category={{selected}}{% endif %}{% if selected_status %}&amp;status={{selected_status}}{% endif %}">Next →</a>{% endif %}
+</div>{% endif %}
+{% endblock %}

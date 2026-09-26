@@ -1,0 +1,37 @@
+# Render.com blueprint - free web service (no credit card needed).
+# Deploy: push this repo to GitHub, then "New +" -> "Blueprint" on render.com.
+#
+# Free-tier notes:
+# - Disk is EPHEMERAL on free plans: uploaded photos + SQLite DB reset on each
+#   redeploy/restart. Fine for a demo; use PythonAnywhere (see README) or a
+#   paid disk/Postgres for permanent storage.
+# - Set LOGIN_REQUIRED=True to force every visitor to sign in.
+services:
+  - type: web
+    name: ai-smart-wardrobe-os
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12"
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: LOGIN_REQUIRED
+        value: "True"
+      - key: DEFAULT_CITY
+        value: "Bengaluru"
+      - key: DEFAULT_LATITUDE
+        value: "12.9716"
+      - key: DEFAULT_LONGITUDE
+        value: "77.5946"
+      # Optional Google Sign-In (set these in the Render dashboard):
+      # - key: GOOGLE_OAUTH_CLIENT_ID
+      #   sync: false
+      # - key: GOOGLE_OAUTH_CLIENT_SECRET
+      #   sync: false

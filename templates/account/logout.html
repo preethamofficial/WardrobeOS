@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block heading %}Sign out{% endblock %}
+{% block content %}
+<div class="form-card auth-card">
+<h3>Sign out?</h3>
+<p class="text-muted">Your wardrobe stays safe and sound — it will be here when you return.</p>
+<form method="post" action="{% url 'account_logout' %}">{% csrf_token %}
+{% if redirect_field_value %}<input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">{% endif %}
+<button class="btn btn-dark" type="submit">Sign out</button>
+<a class="btn btn-outline-secondary" href="/">Cancel</a>
+</form>
+</div>
+{% endblock %}

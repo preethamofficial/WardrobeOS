@@ -1,0 +1,5 @@
+{% extends "base.html" %}{% block heading %}Wardrobe analytics{% endblock %}{% block content %}
+<div class="stats-grid"><div class="stat"><span>Pieces</span><b>{{total_items}}</b></div><div class="stat"><span>Total wears</span><b>{{total_wears}}</b></div><div class="stat"><span>Used pieces</span><b>{{used_items}}</b></div></div>
+<div class="analytics-panel"><h3>Never worn</h3>{% for x in never_items %}<span class="tag me-2 mb-2">{{x.name}}</span>{% empty %}<p>Excellent — every item has been used.</p>{% endfor %}</div>
+<div class="analytics-panel"><h3>Top rotation</h3>{% for x in top_items %}<div class="bar-row"><span>{{x.name}}</span><div><i style="width:{{x.wear_count|add:0}}0%"></i></div><b>{{x.wear_count}}</b></div>{% endfor %}</div>
+{% endblock %}

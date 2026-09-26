@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Prompt Lab · Smart Wardrobe OS{% endblock %}
+{% block eyebrow %}PROMPT LAB{% endblock %}
+{% block heading %}Your prompt engineering cockpit{% endblock %}
+{% block content %}
+<div class="stats-grid">
+  <div class="stat"><span>Total prompts</span><b>{{ stats.total_prompts }}</b><small>Saved in your library</small></div>
+  <div class="stat"><span>Versions</span><b>{{ stats.versions }}</b><small>{{ stats.improvements }} improvement(s) logged</small></div>
+  <div class="stat"><span>Average score</span><b>{{ stats.avg_score|default:"—" }}</b><small>Across analyzed versions</small></div>
+  <div class="stat"><span>AI requests</span><b>{{ stats.ai_requests }}</b><small>{{ stats.ai_errors }} error(s) logged</small></div>
+</div>
+
+<div class="panel">
+  <h3>AI providers</h3>
+  <p class="muted" style="font-size:13px">Keys live only in your <code>.env</code> file. Configure at least one provider to unlock comparison and AI workflows — every other tool works without keys.</p>
+  <div class="compare-grid">
+    {% for p in providers %}
+    <div class="provider-card">
+      <div class="provider-head"><b>{{ p.label }}</b>
+        {% if p.configured %}<span class="badge-ok">Configured</span>{% else %}<span class="badge-warn">Not configured</span>{% endif %}
+      </div>
+      <div class="provider-meta"><span class="status-dot {{ p.configured|yesno:'ok,off' }}"></span>
+        {{ p.capabilities|join:", " }} · default model: {{ p.model }}{% if p.key_env %} · <code>{{ p.key_env }}</code>{% endif %}</div>
+    </div>
+    {% empty %}<div class="empty">No providers registered.</div>{% endfor %}
+  </div>
+</div>
+
+<div class="panel">
+  <h3>Most-used categories</h3>
+  {% for label, count in stats.categories %}
+  <div class="metric-row"><span>{{ label }}</span><div class="bar"><i style="width:{% widthratio count stats.total_prompts 100 %}%"></i></div><b>{{ count }}</b></div>
+  {% empty %}<div class="empty">No prompts yet — <a href="/lab/studio/">generate your first one</a>.</div>
+  {% endfor %}
+</div>
+
+<div class="card-grid">
+  <div class="panel" style="margin:0"><h3>Recent prompts</h3>
+    {% for p in stats.recent_prompts %}<div style="margin:8px 0"><a href="/lab/prompts/{{ p.pk }}/">{{ p.title }}</a>
+    <small class="muted"> · {{ p.get_category_display }}</small></div>
+    {% empty %}<small class="muted">Nothing saved yet.</small>{% endfor %}
+  </div>
+  <div class="panel" style="margin:0"><h3>★ Favorites</h3>
+    {% for p in stats.favorite_prompts %}<div style="margin:8px 0"><a href="/lab/prompts/{{ p.pk }}/">{{ p.title }}</a></div>
+    {% empty %}<small class="muted">Mark prompts as favorite to pin them here.</small>{% endfor %}
+  </div>
+  <div class="panel" style="margin:0"><h3>Provider activity</h3>
+    {% for provider, u in stats.provider_usage.items %}
+    <div class="metric-row"><span>{{ provider }}</span><div class="bar"><i style="width:{{ u.success_rate }}%"></i></div><b>{{ u.total }}</b></div>
+    {% empty %}<small class="muted">No AI requests yet. Try <a href="/lab/compare/">Compare AI</a>.</small>{% endfor %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block heading %}AI stylist{% endblock %}
+{% block content %}
+<div class="style-header"><div><span class="eyebrow">TODAY'S MATCH</span><h2>Outfits ranked for you</h2><p>Rotation + weather + occasion + perceptual colour harmony.</p></div>
+<form><select name="occasion" onchange="this.form.submit()"><option value="office">Office</option><option value="casual">Casual</option><option value="party">Party</option><option value="meeting">Meeting</option><option value="college">College</option><option value="date">Date</option><option value="travel">Travel</option></select></form></div>
+<div class="recommend-grid">{% for outfit in outfits %}<article class="outfit-card"><div class="score-circle">{{outfit.score}}<small>/100</small></div>
+<div class="harmony-chip">Colour harmony {{outfit.harmony}}%</div>
+{% if outfit.palette %}<div class="palette-chips">{% for e in outfit.palette %}<span class="swatch lg" title="{{e.name}}" style="background:{{e.hex}}"></span>{% endfor %}</div>{% endif %}
+<div class="outfit-items">{% for item in outfit.items %}<div class="outfit-item">{% if item.display_image %}<img src="{{item.display_image}}" loading="lazy" alt="{{item.name}}">{% else %}<span>👕</span>{% endif %}<b>{{item.name}}</b><small>{{item.get_category_display}}{% if item.color %} · {{item.color}}{% endif %}</small></div>{% endfor %}</div>
+<div class="why"><b>Why this works</b><ul class="why-list">{% for reason in outfit.why %}<li>{{reason}}</li>{% endfor %}</ul></div>
+<form method="post" action="/outfits/save/">{% csrf_token %}
+  <input type="hidden" name="occasion" value="{{occasion}}">
+  <input type="hidden" name="score" value="{{outfit.score}}">
+  <input type="hidden" name="items" value="{% for item in outfit.items %}{{item.id}}{% if not forloop.last %},{% endif %}{% endfor %}">
+  <button class="btn btn-dark w-100">♡ Save outfit</button></form></article>{% empty %}<div class="empty">Add clean tops and bottoms (or a dress) to generate outfits.</div>{% endfor %}</div>
+{% endblock %}

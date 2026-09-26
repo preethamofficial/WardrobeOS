@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Workflows · Prompt Lab{% endblock %}
+{% block eyebrow %}PROMPT LAB · WORKFLOWS{% endblock %}
+{% block heading %}Chain prompts into a pipeline{% endblock %}
+{% block content %}
+<div class="panel">
+  <form method="post" class="lab-form">{% csrf_token %}
+    <div class="form-row">
+      <div><label>Workflow</label>
+        <select name="preset">
+          {% for key, p in presets.items %}
+          <option value="{{ key }}" {% if preset == key %}selected{% endif %}>{{ p.label }}</option>
+          {% endfor %}
+        </select></div>
+      <div><label>Run name (optional)</label><input name="name" placeholder="My research pass"></div>
+    </div>
+    <label>Input text or prompt</label>
+    <textarea name="text" style="min-height:140px"
+      placeholder="Paste rough notes, a draft or a prompt to run through the workflow">{{ text }}</textarea>
+    <label style="display:flex;gap:8px;align-items:center;font-weight:600">
+      <input type="checkbox" name="use_ai" style="width:auto" {% if use_ai %}checked{% endif %}>
+      Use an AI provider for each step (falls back to the local engine on failure)
+    </label>
+    <label style="display:flex;gap:8px;align-items:center;font-weight:600">
+      <input type="checkbox" name="save" style="width:auto"> Save this run to history
+    </label>
+    <div style="margin-top:12px"><button class="btn btn-accent">⑃ Run workflow</button></div>
+  </form>
+</div>
+
+{% if error %}<div class="empty">⚠ {{ error }}</div>{% endif %}
+
+{% if outcome %}
+<div class="panel">
+  <div class="tier-head" style="display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:0">{{ outcome.label }}</h3>
+    <span class="badge-ok">Final score {{ outcome.final_score }}/100</span>
+  </div>
+  {% for step in outcome.steps %}
+  <div class="provider-card" style="margin:12px 0">
+    <div class="provider-head"><b>{{ forloop.counter }}. {{ step.node|title }}</b>
+      <span class="badge-{{ 'ok'|yesno:'ok,ok' }}">{% if step.status == 'ok' %}OK{% else %}Fallback{% endif %}</span></div>
+    <p class="muted" style="font-size:12px;margin:4px 0">{{ step.note }}</p>
+    <details><summary class="section-label" style="cursor:pointer">Step output</summary>
+      <div class="prompt-box mono" style="margin-top:8px">{{ step.output }}</div></details>
+  </div>
+  {% endfor %}
+  <div class="section-label" style="margin-top:14px">Final result</div>
+  <div class="prompt-box mono" id="wf-final">{{ outcome.final }}</div>
+  <div class="action-chips">
+    <button type="button" data-copy="#wf-final">⧉ Copy final</button>
+    <form method="post" action="{% url 'prompt_save' %}" style="display:contents">{% csrf_token %}
+      <input type="hidden" name="body" value="{{ outcome.final }}">
+      <input type="hidden" name="title" value="Workflow result: {{ outcome.label }}">
+      <input type="hidden" name="source" value="workflow">
+      <button class="btn btn-ghost" style="padding:7px 13px;font-size:12px">💾 Save final</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

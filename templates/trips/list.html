@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block heading %}Trips & packing{% endblock %}{% block content %}
+<div class="hero-card compact"><div><span class="badge-soft">SMART PACKING</span><h2>Build lighter, smarter trips.</h2><p>Add trips through Admin in this starter version. The packing engine is ready for expansion.</p></div></div>
+{% for trip in trips %}<div class="trip-row"><b>{{trip.name}}</b><span>{{trip.destination}}</span><span>{{trip.start_date}} → {{trip.end_date}}</span></div>{% empty %}<div class="empty">No trips yet.</div>{% endfor %}
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% block heading %}Weekly planner{% endblock %}{% block content %}
+<div class="section-head"><div><span class="eyebrow">NEXT 7 DAYS</span><h3>Your rotation plan</h3></div></div>
+<div class="week-grid">{% for day in days %}
+<div class="day-card">
+  <small>{{day.date|date:"D"}}</small><h3>{{day.date|date:"d"}}</h3>
+  {% if day.plan %}<span class="badge-soft">{{day.plan.occasion}}</span><p>{{day.plan.location}}</p>
+  <form method="post" action="/planner/add/">{% csrf_token %}
+    <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+    <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" data-confirm="Clear the plan for {{ day.date|date:'M d' }}?">✕ Clear</button>
+  </form>
+  {% else %}<p class="muted">No plan yet</p>
+  <form method="post" action="/planner/add/" class="lab-form">{% csrf_token %}
+    <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+    <select name="occasion" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+      <option value="casual">Casual</option><option value="office">Office</option>
+      <option value="party">Party</option><option value="sport">Sport</option></select>
+    <input name="location" placeholder="Where?" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+    <button class="btn btn-dark" style="padding:6px 10px;font-size:12px">＋ Plan this day</button>
+  </form>
+  {% endif %}
+</div>{% endfor %}</div>{% endblock %}

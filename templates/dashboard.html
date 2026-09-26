@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block heading %}Your wardrobe at a glance{% endblock %}
+{% block content %}
+<section class="hero-card"><div><span class="badge-soft">AI OUTFIT PLANNER</span><h2>Dress smarter. Wear everything.</h2>
+<p>Weather-aware recommendations, balanced rotation and a cleaner wardrobe — all in one place.</p>
+<a href="/outfits/" class="btn btn-light">Get today's outfit →</a></div><div class="hero-icon">👕</div></section>
+<div class="stats-grid">
+<div class="stat"><span>Total pieces</span><b>{{items_count}}</b><small>Your digital closet</small></div>
+<div class="stat"><span>Clean & ready</span><b>{{clean_count}}</b><small>Available today</small></div>
+<div class="stat"><span>In rotation</span><b>{{worn_count}}</b><small>Items you've worn</small></div>
+<div class="stat"><span>Laundry</span><b>{{laundry_count}}</b><small>Need attention</small></div></div>
+
+<div class="hero-card compact" style="margin-bottom:22px"><div>
+<span class="badge-soft" style="background:#ffffff22;color:#fff">PROMPT LAB</span>
+<h2>Write better prompts, in one cockpit.</h2>
+<p>Generate, analyze and optimize prompts, then compare real AI providers side by side — all with your saved history.</p>
+<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+  <a href="/lab/studio/" class="btn btn-light">✎ Generate a prompt →</a>
+  <a href="/lab/library/" class="btn btn-outline-light">▤ Library ({{lab.total_prompts}})</a>
+  <a href="/lab/compare/" class="btn btn-outline-light">⇄ Compare AI ({{lab.ai_requests}} requests)</a>
+</div></div>
+<div style="text-align:right">
+  <p style="color:#d6d8e5;margin:0">Saved prompts</p><h2 style="margin:0">{{lab.total_prompts}}</h2>
+  <p style="color:#d6d8e5;margin:6px 0 0">Avg score</p><h2 style="margin:0">{{lab.avg_score|default:"—"}}</h2>
+  <p style="color:#d6d8e5;margin:6px 0 0">Versions</p><h2 style="margin:0">{{lab.versions}}</h2>
+</div></div>
+
+<div class="insight-row">
+  <div class="ootd-card">
+    <div class="section-label">TODAY'S OUTFIT{% if wx %} · {{wx.emoji}} {{wx.label}}{% if wx.temp %} {{wx.temp}}°C{% endif %}{% endif %}</div>
+    {% if ootd %}
+      <div class="ootd-items">{% for item in ootd.items %}<div class="ootd-item">{% if item.display_image %}<img src="{{item.display_image}}" loading="lazy" alt="{{item.name}}">{% else %}<span class="ph">👕</span>{% endif %}<div><b>{{item.name}}</b><small>{{item.get_category_display}}{% if item.color %} · {{item.color}}{% endif %}</small></div></div>{% endfor %}</div>
+      <ul class="why-list">{% for reason in ootd.why %}<li>{{reason}}</li>{% endfor %}</ul>
+      <a class="btn btn-ghost" href="/outfits/">More outfits →</a>
+    {% else %}
+      <p>Add a few clean pieces and the AI stylist will build today's outfit here.</p>
+      <a class="btn btn-ghost" href="/wardrobe/add/">＋ Add clothing</a>
+    {% endif %}
+  </div>
+  {% if colour_dna %}
+  <div class="dna-card">
+    <div class="section-label">WARDROBE COLOUR DNA</div>
+    <div class="dna-strip">{% for c in colour_dna %}<span class="dna-chip" title="{{c.name}} · {{c.count}} pieces" style="background:{{c.hex}}"></span>{% endfor %}</div>
+    <ul class="dna-list">{% for c in colour_dna|slice:":5" %}<li><span class="swatch" style="background:{{c.hex}}"></span>{{c.name}} <small>{{c.pct}}%</small></li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</div>
+
+<div class="section-head"><div><span class="eyebrow">ROTATION</span><h3>Most worn pieces</h3></div><a href="/wardrobe/">View wardrobe →</a></div>
+<div class="card-grid">{% for item in top_items %}<div class="mini-card">
+<div class="cloth-placeholder">{% if item.image %}<img src="{{item.image.url}}">{% else %}👕{% endif %}</div>
+<div><b>{{item.name}}</b><p>{{item.get_category_display}} · {{item.wear_count}} wears</p></div></div>{% empty %}<div class="empty">Add your first clothing item to start.</div>{% endfor %}</div>
+{% endblock %}
