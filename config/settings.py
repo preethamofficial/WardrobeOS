@@ -72,6 +72,17 @@ if EMAIL_HOST:
 else:
     EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend"
 LOGIN_REQUIRED=os.getenv("LOGIN_REQUIRED","False").lower()=="true"
+# HTTPS hardening - opt-in via FORCE_HTTPS=True in the production .env. Kept off by
+# default so local dev and plain-HTTP health checks keep working; Render/PythonAnywhere
+# terminate TLS at their proxy, which is why X-Forwarded-Proto is trusted here.
+if os.getenv("FORCE_HTTPS","False").strip().lower() in ("1","true","yes","on"):
+    SECURE_PROXY_SSL_HEADER=("HTTP_X_FORWARDED_PROTO","https")
+    SECURE_SSL_REDIRECT=True
+    SESSION_COOKIE_SECURE=True
+    CSRF_COOKIE_SECURE=True
+    SECURE_HSTS_SECONDS=int(os.getenv("SECURE_HSTS_SECONDS","31536000"))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS=True
+    SECURE_HSTS_PRELOAD=False  # requires an explicit opt-in decision per domain
 ROOT_URLCONF="config.urls"
 TEMPLATES=[{"BACKEND":"django.template.backends.django.DjangoTemplates","DIRS":[BASE_DIR/"templates"],
 "APP_DIRS":True,"OPTIONS":{"context_processors":[
