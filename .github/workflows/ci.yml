@@ -48,4 +48,17 @@ jobs:
         # reviewed manually in this codebase; everything else must pass.
         run: bandit -r . -x ./migrations,./.venv -ll -i
       - name: pip-audit (known CVEs in pinned deps)
-        run: pip-audit -r requirements.txt --strict || pip-audit -r requirements.txt
+        # No `|| pip-audit` fallback: that silently made --strict meaningless and
+        # would let a genuine CVE through the build.
+        run: pip-audit -r requirements.txt --strict
+      - name: Deployment settings check
+        # Guards the production posture (SECURE_SSL_REDIRECT, cookie flags, HSTS)
+        # against regressions using the same env a real deploy would have.
+        env:
+          DJANGO_DEBUG: "False"
+          DJANGO_SECRET_KEY: ci-deploy-check-secret-key-not-for-production
+          DJANGO_ALLOWED_HOSTS: ci.invalid
+          DJANGO_CSRF_TRUSTED_ORIGINS: https://ci.invalid
+          DJANGO_FORCE_HTTPS: "True"
+        run: python manage.py check --deploy
+

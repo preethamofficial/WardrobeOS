@@ -2,10 +2,13 @@
 
 Keys are optional and read from GEMINI_API_KEY. Model override: GEMINI_MODEL.
 
-Google retires Gemini model IDs regularly (`gemini-2.0-flash` was withdrawn, so
-hard-coding it broke every vision call). The default below is a currently
-supported, free-tier model, and if the API answers "model not found" we retry
-the next candidate in FALLBACK_MODELS before giving up - so an upstream
+Google retires Gemini model IDs regularly, so hard-coding one is fragile:
+`gemini-2.0-flash` and `gemini-2.0-flash-lite` are fully shut down, and the whole
+2.5 generation is now access-restricted to projects that used it *before* that
+restriction - so a brand-new API key gets 403/404 on every 2.5 ID.
+
+The default below is a currently supported Flash model, and if the API answers
+"model not found" we walk FALLBACK_MODELS before giving up, so an upstream
 retirement degrades to a slower call instead of a hard failure.
 """
 import os
@@ -16,9 +19,9 @@ from .base import AIProvider, AIResult, InvalidResponseError, now_ms, post_json
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 
-# Ordered newest/most capable free-tier first. Only ever contacted after the
-# primary model returned a model-not-found error.
-FALLBACK_MODELS = ("gemini-2.5-flash-lite", "gemini-flash-latest", "gemini-2.0-flash-lite")
+# Ordered newest/most capable first. Only ever contacted after the primary model
+# returned a model-not-found error. All of these are current, non-deprecated IDs.
+FALLBACK_MODELS = ("gemini-3.5-flash-lite", "gemini-3.7-flash", "gemini-flash-latest")
 
 VALID_CATEGORIES = {"shirt", "tshirt", "pant", "jeans", "shorts", "jacket",
                     "hoodie", "sweater", "dress", "skirt", "shoes", "accessory", "other"}
@@ -43,7 +46,7 @@ class GeminiProvider(AIProvider):
     id = "gemini"
     label = "Google Gemini"
     capabilities = ("text", "vision")
-    default_model = "gemini-2.5-flash"
+    default_model = "gemini-3.5-flash"
     docs_url = "https://ai.google.dev/gemini-api/docs"
 
     def _model(self) -> str:

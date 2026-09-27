@@ -96,29 +96,51 @@ turn it on later with `ACCOUNT_EMAIL_VERIFICATION` + any free SMTP tier.
 1. Push this repo to GitHub (see below).
 2. On render.com: **New + → Blueprint**, pick your repo - `render.yaml`
    configures a free web service automatically.
-3. Set env vars in the dashboard: `SECRET_KEY` (auto), `LOGIN_REQUIRED=True`,
-   plus `GOOGLE_OAUTH_CLIENT_ID/SECRET` if you want Google sign-in.
-4. Done - `https://your-app.onrender.com`.
+3. Render fills in the rest: `SECRET_KEY` is generated for you, `DEBUG=False`,
+   `CSRF_TRUSTED_ORIGINS` / `ALLOWED_HOSTS` point at your service, and
+   `migrate` runs on every start (a free instance's disk is wiped on restart,
+   so migrating on start is what keeps the app usable).
+4. Add anything optional under **Environment** in the dashboard:
+   `GOOGLE_OAUTH_CLIENT_ID` / `GOOGLE_OAUTH_CLIENT_SECRET` for Google sign-in,
+   and/or `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENROUTER_API_KEY` /
+   `HUGGINGFACE_API_KEY` for the AI features.
+5. Done - `https://ai-smart-wardrobe-os.onrender.com`.
 
-Free-tier caveat: disk is ephemeral, so uploaded photos/DB reset on redeploys.
-Great for a demo; use Option B for persistence.
+Two free-tier behaviours to expect:
+- **Disk is ephemeral.** Uploaded photos and the SQLite DB are wiped on every
+  redeploy and restart. Fine for a demo; use Option B (or a paid disk / Postgres)
+  for permanent storage. Pointing `DATABASE_URL` at Postgres preserves your
+  records even though photos still need a real disk.
+- **The instance sleeps** after ~15 minutes idle, so the first request after a
+  pause can take 30-60 seconds while it cold-starts.
+
+If you rename the service, update `CSRF_TRUSTED_ORIGINS` in `render.yaml` to
+your new hostname, otherwise form POSTs fail with "CSRF verification failed".
 
 ### Option B: PythonAnywhere (free AND persistent disk)
 
 1. Create a free account → **Web** tab → **Add new web app** → Manual config → Python 3.10+.
 2. In a Bash console:
    ```bash
-   git clone https://github.com/YOU/AI_Smart_Wardrobe_OS.git
-   cd AI_Smart_Wardrobe_OS
+   git clone https://github.com/preethamofficial/WardrobeOS.git
+   cd WardrobeOS
    python3 -m venv .venv && . .venv/bin/activate
    pip install -r requirements.txt
    python manage.py migrate && python manage.py collectstatic --noinput
+   python manage.py createsuperuser     # so you can reach /admin/
    ```
 3. Web tab → set source directory & WSGI file to point at
-   `AI_Smart_Wardrobe_OS/config/wsgi.py`, add
-   `/PATH/.venv/lib/python3.x/site-packages` to virtualenv paths, set your
-   env vars (SECRET_KEY, LOGIN_REQUIRED=True, Google keys) in the web tab.
-4. Your app stays up with persistent storage - images and SQLite survive.
+   `WardrobeOS/config/wsgi.py`, add
+   `/PATH/.venv/lib/python3.x/site-packages` to virtualenv paths.
+4. In the same **Web** tab, define the environment variables (this is the
+   part people miss - there is no `.env` file on a hosted box):
+   `SECRET_KEY` (generate one), `DEBUG=False`,
+   `ALLOWED_HOSTS=yourusername.pythonanywhere.com`,
+   `CSRF_TRUSTED_ORIGINS=https://yourusername.pythonanywhere.com`,
+   `LOGIN_REQUIRED=True`, plus `GOOGLE_OAUTH_CLIENT_ID/SECRET` if you want
+   Google sign-in. `FORCE_HTTPS` is implied by `DEBUG=False`.
+5. Reload the web app. Your data stays on disk - images and SQLite survive
+   restarts and redeploys.
 
 Both have long-standing **free tiers** suitable for hobby use (Render's sleeps
 when idle; PythonAnywhere's is always-on with CPU/memory limits), and the app
@@ -133,18 +155,36 @@ terms rather than a guarantee; the source code is MIT-licensed.
 git init -b main
 git add .
 git commit -m "AI Smart Wardrobe OS"
-git remote add origin https://github.com/YOU/AI_Smart_Wardrobe_OS.git
+git remote add origin https://github.com/preethamofficial/WardrobeOS.git
 git push -u origin main
 ```
-`.env`, `db.sqlite3`, `media/` and logs are git-ignored - no secrets or
-personal photos get published.
+`.env`, `db.sqlite3`, `media/`, `staticfiles/` and logs are git-ignored - no
+secrets or personal photos get published. Verify with
+`git status --ignored` before the first push if you want to be sure, and note
+that `.dockerignore` keeps the same files out of Docker images too.
 
 ## Optional AI providers
 
-Provider adapters are intentionally placeholders. Add keys only for providers
-you choose and whose current free quota suits your use. The offline colour
-engine already covers colour, family and pattern detection; providers can
-additionally fill category / material / formality from photos.
+The provider adapters are **fully implemented** (Groq, Gemini, OpenRouter,
+Hugging Face, Ollama and an always-on local colour engine) - not placeholders.
+Add keys only for the providers you want; the app starts and works fine with
+none of them.
+
+The offline colour engine already covers colour, family and pattern detection
+with no key at all. Providers additionally fill category / material / formality
+from photos, and power the Prompt Lab text features.
+
+Routing is automatic: configured providers are tried in `AI_PROVIDER_ORDER`,
+every failure falls through to the next, and the local rule engine is always
+the final fallback.
+
+> **Model IDs go stale.** Vendors retire models without warning - Google shut
+> down the 2.0 Gemini generation and now access-limits 2.5, Groq moved
+> `llama-3.3-70b-versatile` to a paid Enterprise tier, and OpenRouter retires
+> `:free` variants often. The defaults in `.env.example` point at currently
+> available free models, and Gemini auto-falls-back if its model is retired. If
+> an AI feature starts returning an auth/404 error, re-check the model list -
+> see `docs/AI_PROVIDERS.md`.
 
 See `.env.example` and `ai/providers/`.
 

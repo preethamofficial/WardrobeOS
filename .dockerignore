@@ -1,0 +1,46 @@
+# Never bake local secrets or state into the image.
+# Without this, `COPY . .` in the Dockerfile would put .env (API keys, SECRET_KEY)
+# and the local SQLite DB into every published layer.
+.env
+.env.*
+!.env.example
+
+# Version control
+.git
+.gitignore
+.github
+
+# Virtualenvs (the image builds its own inside the container)
+.venv
+venv
+env
+
+# Python bytecode / tooling caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Local state: database, uploads and generated static files
+db.sqlite3
+db.sqlite3-*
+media/
+staticfiles/
+
+# Logs and OS cruft
+*.log
+server.log
+server_error.log
+.DS_Store
+Thumbs.db
+
+# Container/docs files not needed at runtime
+Dockerfile
+docker-compose.yml
+.dockerignore
+README.md
+LICENSE

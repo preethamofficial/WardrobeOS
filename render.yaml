@@ -5,33 +5,64 @@
 # - Disk is EPHEMERAL on free plans: uploaded photos + SQLite DB reset on each
 #   redeploy/restart. Fine for a demo; use PythonAnywhere (see README) or a
 #   paid disk/Postgres for permanent storage.
+# - Free instances sleep when idle and cold-start slowly, so the health check
+#   points at the cheap /health/ endpoint rather than the full dashboard.
+# - `migrate` is NOT run at build time on purpose: the build container has its
+#   own throwaway disk, so migrating there is wasted work. It runs on start,
+#   against the live instance disk.
 # - Set LOGIN_REQUIRED=True to force every visitor to sign in.
 services:
   - type: web
     name: ai-smart-wardrobe-os
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate
-    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4
+    buildCommand: pip install --no-cache-dir -r requirements.txt && python manage.py collectstatic --noinput
+    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    healthCheckPath: /health/
+    autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
-        value: "3.12"
+        value: "3.12.13"
       - key: DEBUG
         value: "False"
       - key: SECRET_KEY
         generateValue: true
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
+      # HTTPS is terminated at Render's proxy. DEBUG=False already implies these,
+      # but they are explicit so the intent survives a future DEBUG flip.
+      - key: FORCE_HTTPS
+        value: "True"
+      # Required for POST requests (login, uploads, forms) behind the proxy.
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://ai-smart-wardrobe-os.onrender.com"
+      # Only trust X-Forwarded-For from Render's proxy, for correct rate limiting.
+      - key: TRUST_PROXY_HEADERS
+        value: "True"
       - key: LOGIN_REQUIRED
         value: "True"
+      - key: LOG_LEVEL
+        value: "INFO"
       - key: DEFAULT_CITY
         value: "Bengaluru"
       - key: DEFAULT_LATITUDE
         value: "12.9716"
       - key: DEFAULT_LONGITUDE
         value: "77.5946"
+      # Uploads: stay under Render's request-body limit and the app's own caps.
+      - key: DATA_UPLOAD_MAX_MEMORY_SIZE
+        value: "12582912"
       # Optional Google Sign-In (set these in the Render dashboard):
       # - key: GOOGLE_OAUTH_CLIENT_ID
       #   sync: false
       # - key: GOOGLE_OAUTH_CLIENT_SECRET
+      #   sync: false
+      # Optional AI provider keys (free tiers, all optional):
+      # - key: GROQ_API_KEY
+      #   sync: false
+      # - key: GEMINI_API_KEY
+      #   sync: false
+      # - key: OPENROUTER_API_KEY
+      #   sync: false
+      # - key: HUGGINGFACE_API_KEY
       #   sync: false

@@ -10,12 +10,20 @@ that owns it, so a logged-out visitor (or a wrong account) gets a 404.
 """
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from django.conf import settings
 from django.shortcuts import redirect
 
-ALLOWLIST_PREFIXES = ("/admin/login/", "/accounts/login/", "/accounts/signup/",
+# The app's own allauth login/signup pages. `/admin/login/` is intentionally
+# absent: the Django admin form is a staff tool, not the branded user login, and
+# pointing ordinary visitors at it looks broken.
+LOGIN_URL = "/accounts/login/"
+SIGNUP_URL = "/accounts/signup/"
+
+ALLOWLIST_PREFIXES = ("/admin/login/", LOGIN_URL, SIGNUP_URL,
                       "/accounts/google/", "/accounts/3rdparty/",
-                      "/static/", "/health/")
+                      "/static/", "/health/", "/api/health/")
 
 
 class LoginRequiredMiddleware:
@@ -26,5 +34,7 @@ class LoginRequiredMiddleware:
         if getattr(settings, "LOGIN_REQUIRED", False) and not request.user.is_authenticated:
             path = request.path
             if not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
-                return redirect(f"/admin/login/?next={path}")
+                # `next` is URL-encoded so a crafted path cannot smuggle in a
+                # scheme or host, and only same-site relative paths are returned.
+                return redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
         return self.get_response(request)
