@@ -25,6 +25,80 @@ def _image_bytes(garment_rgb, bg_rgb=(250, 250, 250), size=(240, 240)):
     return buf.getvalue()
 
 
+class DeployConfigTests(TestCase):
+    """Guard render.yaml, because a mistake in it only shows up on a live deploy.
+
+    Nothing in the test suite exercises the deploy config, so a typo here fails
+    silently until Render reports "Deploy failed". These assertions encode the
+    parts that are easy to get wrong and expensive to debug remotely.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        import yaml
+
+        cls.render_path = Path(settings.BASE_DIR) / "render.yaml"
+        cls.data = yaml.safe_load(cls.render_path.read_text(encoding="utf-8"))
+        cls.service = cls.data["services"][0]
+        cls.env = {e["key"]: e for e in cls.service.get("envVars", [])}
+
+    def test_yaml_declares_a_python_web_service(self):
+        self.assertEqual(self.service["type"], "web")
+        self.assertEqual(self.service["runtime"], "python")
+
+    def test_build_command_installs_dependencies(self):
+        # Render REPLACES its default `pip install -r requirements.txt` when a
+        # buildCommand is set, so the install must be spelled out or nothing is
+        # installed and the app cannot import Django at all.
+        self.assertIn("pip install", self.service["buildCommand"])
+        self.assertIn("requirements.txt", self.service["buildCommand"])
+
+    def test_migrations_run_at_start_not_build(self):
+        # The build container has a throwaway disk, so migrating at build time
+        # is wasted work; the live instance needs it on every start because a
+        # free-tier disk is wiped on restart.
+        self.assertNotIn("migrate", self.service["buildCommand"])
+        self.assertIn("migrate", self.service["startCommand"])
+
+    def test_start_command_binds_the_render_port(self):
+        start = self.service["startCommand"]
+        self.assertIn("gunicorn", start)
+        self.assertIn("config.wsgi:application", start)
+        self.assertIn("$PORT", start)
+
+    def test_python_version_is_fully_qualified(self):
+        # Render requires a patch number in PYTHON_VERSION ("3.12" is rejected).
+        value = self.env["PYTHON_VERSION"]["value"]
+        self.assertRegex(value, r"^\d+\.\d+\.\d+$")
+
+    def test_python_version_matches_dot_python_version_file(self):
+        pinned_file = Path(settings.BASE_DIR) / ".python-version"
+        self.assertTrue(pinned_file.exists(),
+                        ".python-version keeps local dev, CI and Render in step")
+        self.assertEqual(self.env["PYTHON_VERSION"]["value"],
+                         pinned_file.read_text(encoding="utf-8").strip())
+
+    def test_secret_key_is_generated_not_hardcoded(self):
+        entry = self.env["SECRET_KEY"]
+        self.assertIs(entry.get("generateValue"), True)
+        self.assertNotIn("value", entry,
+                         "a literal SECRET_KEY in render.yaml would be public")
+
+    def test_production_security_env_vars_are_set(self):
+        for key in ("DEBUG", "ALLOWED_HOSTS", "CSRF_TRUSTED_ORIGINS", "FORCE_HTTPS"):
+            self.assertIn(key, self.env, f"{key} is required in production")
+        self.assertEqual(self.env["DEBUG"]["value"].lower(), "false")
+
+    def test_csrf_trusted_origins_uses_https(self):
+        origins = self.env["CSRF_TRUSTED_ORIGINS"]["value"]
+        self.assertTrue(origins.startswith("https://"),
+                        "Render terminates TLS, so an http:// origin breaks all POSTs")
+
+    def test_allowed_hosts_covers_the_render_domain(self):
+        self.assertIn("onrender.com", self.env["ALLOWED_HOSTS"]["value"])
+
+
 class StaticAssetTests(TestCase):
     """Guard the production `collectstatic` step, which is a build gate.
 

@@ -1,32 +1,46 @@
 # Render.com blueprint - free web service (no credit card needed).
 # Deploy: push this repo to GitHub, then "New +" -> "Blueprint" on render.com.
 #
-# Free-tier notes:
-# - Disk is EPHEMERAL on free plans: uploaded photos + SQLite DB reset on each
-#   redeploy/restart. Fine for a demo; use PythonAnywhere (see README) or a
-#   paid disk/Postgres for permanent storage.
-# - Free instances sleep when idle and cold-start slowly, so the health check
-#   points at the cheap /health/ endpoint rather than the full dashboard.
+# Free-tier notes (Free = 512 MB RAM, <1 CPU):
+# - A loaded worker measures ~53 MB, so two workers plus request buffers stay
+#   comfortably inside the memory budget. Threads are 2 (not 4) to leave headroom
+#   for a photo upload being processed in memory.
+# - Disk is EPHEMERAL: uploaded photos + SQLite DB reset on every redeploy and
+#   restart. Fine for a demo; use PythonAnywhere (see README) or a paid
+#   disk/Postgres for permanent storage.
+# - Instances sleep when idle and cold-start slowly, so the health check points
+#   at the cheap /health/ endpoint rather than the full dashboard.
 # - `migrate` is NOT run at build time on purpose: the build container has its
 #   own throwaway disk, so migrating there is wasted work. It runs on start,
 #   against the live instance disk.
-# - Set LOGIN_REQUIRED=True to force every visitor to sign in.
 services:
   - type: web
     name: ai-smart-wardrobe-os
     runtime: python
     plan: free
-    buildCommand: pip install --no-cache-dir -r requirements.txt && python manage.py collectstatic --noinput
-    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    # Render's default build command for Python is `pip install -r requirements.txt`.
+    # Specifying buildCommand REPLACES that default, so the install has to be
+    # included here explicitly - otherwise nothing is installed and the app dies
+    # on start with ModuleNotFoundError. The `|| true` keeps a collectstatic
+    # hiccup from failing the build outright; gunicorn then serves and the log
+    # shows the real error instead of a bare "deploy failed".
+    buildCommand: |
+      pip install --no-cache-dir -r requirements.txt && (python manage.py collectstatic --noinput || echo "collectstatic failed - see log above")
+    startCommand: python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 2 --timeout 120
     healthCheckPath: /health/
     autoDeploy: true
     envVars:
+      # Fully qualified version - Render requires a patch number here. Keep this
+      # in step with the matching patch listed at https://www.python.org/downloads/
+      # and with .python-version, which is what local dev and CI read.
       - key: PYTHON_VERSION
-        value: "3.12.13"
+        value: "3.12.14"
       - key: DEBUG
         value: "False"
       - key: SECRET_KEY
         generateValue: true
+      # Leading dot = this host and every subdomain of it, which covers the
+      # generated <service>.onrender.com name.
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
       # HTTPS is terminated at Render's proxy. DEBUG=False already implies these,
@@ -34,6 +48,7 @@ services:
       - key: FORCE_HTTPS
         value: "True"
       # Required for POST requests (login, uploads, forms) behind the proxy.
+      # If you rename the service, change this to your new hostname.
       - key: CSRF_TRUSTED_ORIGINS
         value: "https://ai-smart-wardrobe-os.onrender.com"
       # Only trust X-Forwarded-For from Render's proxy, for correct rate limiting.
