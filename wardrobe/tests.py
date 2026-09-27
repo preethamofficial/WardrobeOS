@@ -1,8 +1,11 @@
 """Integration tests: upload pipeline, colour auto-detection, views, API."""
 import os
+import re
 import tempfile
 from io import BytesIO
+from pathlib import Path
 
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 
@@ -20,6 +23,59 @@ def _image_bytes(garment_rgb, bg_rgb=(250, 250, 250), size=(240, 240)):
     buf = BytesIO()
     im.save(buf, format="JPEG")
     return buf.getvalue()
+
+
+class StaticAssetTests(TestCase):
+    """Guard the production `collectstatic` step, which is a build gate.
+
+    Manifest storage resolves every reference inside a stylesheet and raises
+    MissingFileError when one is absent. `static/vendor/bootstrap.min.css` shipped
+    with a `sourceMappingURL` comment pointing at a .map file that was never
+    committed, so `collectstatic` aborted and every Render/Docker deploy failed
+    before the app could start. These tests fail early and clearly instead.
+    """
+
+    @staticmethod
+    def _static_root() -> Path:
+        dirs = settings.STATICFILES_DIRS
+        return Path(dirs[0] if dirs else settings.BASE_DIR / "static")
+
+    def test_no_dangling_sourcemap_references(self):
+        offenders = []
+        root = self._static_root()
+        for css in root.rglob("*.css"):
+            text = css.read_text(encoding="utf-8", errors="ignore")
+            for target in re.findall(r"sourceMappingURL=([^\s*]+)", text):
+                if not (css.parent / target).exists():
+                    offenders.append(f"{css.name} -> {target}")
+        self.assertEqual(offenders, [],
+                         f"CSS files reference missing source maps: {offenders}")
+
+    def test_stylesheet_references_all_resolve(self):
+        """Every url()/@import target in our own CSS must exist on disk."""
+        static_root = self._static_root()
+        # STATIC_URL is the prefix that gets served at the site root, so
+        # "/static/vendor/x.woff2" maps to "<static root>/vendor/x.woff2".
+        url_prefix = settings.STATIC_URL.lstrip("/")
+        missing = []
+        for css in static_root.rglob("*.css"):
+            text = css.read_text(encoding="utf-8", errors="ignore")
+            for target in re.findall(r"url\(\s*['\"]?([^'\")]+)['\"]?\s*\)", text):
+                if target.startswith(("data:", "http:", "https:", "//", "#")):
+                    continue
+                clean = target.split("?")[0].split("#")[0].lstrip("/")
+                if url_prefix and clean.startswith(url_prefix):
+                    # "/static/vendor/x.woff2" -> "vendor/x.woff2", relative to
+                    # the static root, not to this stylesheet's directory.
+                    clean = clean[len(url_prefix):]
+                    candidate = static_root / clean
+                else:
+                    # A bare relative path is relative to the stylesheet itself.
+                    candidate = css.parent / clean
+                if not candidate.exists():
+                    missing.append(f"{css.name} -> {target}")
+        self.assertEqual(missing, [],
+                         f"CSS files reference missing assets: {missing}")
 
 
 @override_settings(MEDIA_ROOT=tempfile.mkdtemp())
