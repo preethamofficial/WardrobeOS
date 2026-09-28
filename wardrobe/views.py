@@ -9,23 +9,26 @@ from ai.colors import normalize_palette
 from ai.matching import recommend
 from config.scoping import get_scoped, scoped_items
 from promptlab.services import lab_stats
-from weather.service import get_weather, summarize
+from weather.service import get_weather, summarize\nfrom accounts_app.models import resolve_location
 
 from .forms import ItemForm
 from .models import Item
 from .services import analyse_item
 
 
-def _weather():
+def _weather(user=None):
+    place = resolve_location(user)
     try:
-        return summarize(get_weather())
+        data = summarize(get_weather(place["lat"], place["lon"]))
+        data["city"] = place["city"]
+        return data
     except Exception:
         return None
 
 
 def dashboard(request):
     items = scoped_items(request.user)
-    wx = _weather()
+    wx = _weather(request.user)
     temp = (wx or {}).get("temp") or 25
     ootd = (recommend(items, "casual", temp, (wx or {}).get("kind")) or [None])[0]
     lab = lab_stats()
