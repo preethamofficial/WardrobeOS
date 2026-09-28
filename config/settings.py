@@ -74,12 +74,15 @@ LOGOUT_REDIRECT_URL="/"
 # Authentication is email-first: usernames remain an internal Django identifier,
 # but users can no longer sign in with a username. Every password account must
 # provide and verify a unique email address before access is granted.
+ACCOUNT_USER_MODEL_USERNAME_FIELD=None
 ACCOUNT_LOGIN_METHODS={"email"}
-ACCOUNT_SIGNUP_FIELDS=["username*","email*","password1*","password2*"]
+ACCOUNT_SIGNUP_FIELDS=["email*","password1*","password2*"]
 ACCOUNT_EMAIL_VERIFICATION="mandatory"
 ACCOUNT_UNIQUE_EMAIL=True
 ACCOUNT_PREVENT_ENUMERATION=True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
+ACCOUNT_CONFIRM_EMAIL_ON_GET=True
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS=3
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True
 SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
 # SMTP (optional). Any provider works; Gmail needs an App Password, and free
