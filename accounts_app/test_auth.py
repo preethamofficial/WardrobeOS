@@ -27,7 +27,7 @@ class AuthenticationFlowTests(TestCase):
 
     def test_authentication_is_email_only_and_email_is_required(self):
         self.assertEqual(settings.ACCOUNT_LOGIN_METHODS, {"email"})
-        self.assertTrue(settings.ACCOUNT_SIGNUP_FIELDS[1].endswith("*"))
+        self.assertEqual(settings.ACCOUNT_SIGNUP_FIELDS, ["email*", "password1*", "password2*"])
         response = self.client.post(
             reverse("account_login"),
             {"login": "preetham-test", "password": "StrongPass123!"},
