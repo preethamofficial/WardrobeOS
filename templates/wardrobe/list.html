@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block heading %}My wardrobe{% endblock %}
-{% block content %}
+{% block content %}<div class="dashboard-bridge"><div><span class="eyebrow">VISION SCANNER</span><h3>Have a camera roll full of clothes?</h3><p>Import up to 8 garment photos at once and let the existing vision pipeline structure them.</p></div><a class="btn btn-accent" href="{% url 'quick_scan' %}">Quick Scan →</a></div>
+
 <div class="toolbar"><form class="search"><input name="q" value="{{q}}" placeholder="Search your wardrobe...">
 <input type="hidden" name="category" value="{{selected}}"><input type="hidden" name="status" value="{{selected_status}}">
 <button>⌕</button></form>
