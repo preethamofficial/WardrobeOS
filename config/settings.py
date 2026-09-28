@@ -69,9 +69,8 @@ AUTHENTICATION_BACKENDS=[
 SITE_ID=1
 LOGIN_REDIRECT_URL=env("LOGIN_REDIRECT_URL","/")
 LOGOUT_REDIRECT_URL="/"
-# Email (and username) login + open signup. Verification defaults to "none" so no
-# SMTP account is needed for a free deployment; set ACCOUNT_EMAIL_VERIFICATION to
-# "optional" or "mandatory" and fill the EMAIL_* variables below to send real mail.
+# Email-first authentication. Verification is mandatory for password accounts;
+# hosted deployments must provide SMTP so verification and recovery emails reach users.
 # Authentication is email-first: usernames remain an internal Django identifier,
 # but users can no longer sign in with a username. Every password account must
 # provide and verify a unique email address before access is granted.
