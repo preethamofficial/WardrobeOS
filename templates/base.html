@@ -17,24 +17,24 @@
 <aside class="sidebar">
   <div class="brand">✦ <span>WardrobeOS</span></div>
   <nav class="nav-group">
-    <a href="/" class="{% if request.path == '/' %}active{% endif %}">⌂ <span>Dashboard</span></a>
-    <a href="/wardrobe/" class="{% if '/wardrobe' in request.path %}active{% endif %}">◈ <span>My Wardrobe</span></a>
-    <a href="/outfits/" class="{% if '/outfits' in request.path %}active{% endif %}">✦ <span>AI Stylist</span></a>
-    <a href="/planner/" class="{% if '/planner' in request.path %}active{% endif %}">▦ <span>Weekly Planner</span></a>
-    <a href="/laundry/" class="{% if '/laundry' in request.path %}active{% endif %}">♧ <span>Laundry</span></a>
-    <a href="/analytics/" class="{% if '/analytics' in request.path %}active{% endif %}">◒ <span>Analytics</span></a>
-    <a href="/style/" class="{% if '/style' in request.path %}active{% endif %}">◎ <span>Style Intelligence</span></a>
+    <a title="Dashboard" aria-label="Dashboard" href="/" class="{% if request.path == '/' %}active{% endif %}">⌂ <span>Dashboard</span></a>
+    <a title="My Wardrobe" aria-label="My Wardrobe" href="/wardrobe/" class="{% if '/wardrobe' in request.path %}active{% endif %}">◈ <span>My Wardrobe</span></a>
+    <a title="AI Stylist" aria-label="AI Stylist" href="/outfits/" class="{% if '/outfits' in request.path %}active{% endif %}">✦ <span>AI Stylist</span></a>
+    <a title="Weekly Planner" aria-label="Weekly Planner" href="/planner/" class="{% if '/planner' in request.path %}active{% endif %}">▦ <span>Weekly Planner</span></a>
+    <a title="Laundry" aria-label="Laundry" href="/laundry/" class="{% if '/laundry' in request.path %}active{% endif %}">♧ <span>Laundry</span></a>
+    <a title="Analytics" aria-label="Analytics" href="/analytics/" class="{% if '/analytics' in request.path %}active{% endif %}">◒ <span>Analytics</span></a>
+    <a title="Style Intelligence" aria-label="Style Intelligence" href="/style/" class="{% if '/style' in request.path %}active{% endif %}">◎ <span>Style Intelligence</span></a>
     <a href="/trips/" class="{% if '/trips' in request.path %}active{% endif %}">⌁ <span>Trips</span></a>
   </nav>
   <div class="nav-divider"><span>Prompt Lab</span></div>
   <nav class="nav-group">
-    <a href="/lab/" class="{% if request.path == '/lab/' %}active{% endif %}">◉ <span>Lab Overview</span></a>
-    <a href="/lab/studio/" class="{% if '/studio' in request.path %}active{% endif %}">✎ <span>Generator</span></a>
-    <a href="/lab/analyze/" class="{% if '/analyze' in request.path %}active{% endif %}">◔ <span>Analyzer</span></a>
-    <a href="/lab/optimize/" class="{% if '/optimize' in request.path %}active{% endif %}">⚡ <span>Optimizer</span></a>
-    <a href="/lab/library/" class="{% if '/library' in request.path or '/lab/prompts' in request.path or '/lab/templates' in request.path %}active{% endif %}">▤ <span>Prompt Library</span></a>
-    <a href="/lab/compare/" class="{% if '/compare' in request.path %}active{% endif %}">⇄ <span>Compare AI</span></a>
-    <a href="/lab/workflows/" class="{% if '/workflows' in request.path %}active{% endif %}">⑃ <span>Workflows</span></a>
+    <a title="Prompt Lab" aria-label="Prompt Lab" href="/lab/" class="{% if request.path == '/lab/' %}active{% endif %}">◉ <span>Lab Overview</span></a>
+    <a title="Prompt Generator" aria-label="Prompt Generator" href="/lab/studio/" class="{% if '/studio' in request.path %}active{% endif %}">✎ <span>Generator</span></a>
+    <a title="Prompt Analyzer" aria-label="Prompt Analyzer" href="/lab/analyze/" class="{% if '/analyze' in request.path %}active{% endif %}">◔ <span>Analyzer</span></a>
+    <a title="Prompt Optimizer" aria-label="Prompt Optimizer" href="/lab/optimize/" class="{% if '/optimize' in request.path %}active{% endif %}">⚡ <span>Optimizer</span></a>
+    <a title="Prompt Library" aria-label="Prompt Library" href="/lab/library/" class="{% if '/library' in request.path or '/lab/prompts' in request.path or '/lab/templates' in request.path %}active{% endif %}">▤ <span>Prompt Library</span></a>
+    <a title="Compare AI" aria-label="Compare AI" href="/lab/compare/" class="{% if '/compare' in request.path %}active{% endif %}">⇄ <span>Compare AI</span></a>
+    <a title="AI Workflows" aria-label="AI Workflows" href="/lab/workflows/" class="{% if '/workflows' in request.path %}active{% endif %}">⑃ <span>Workflows</span></a>
   </nav>
   <nav class="nav-group nav-bottom">
     {% if user.is_staff %}<a href="/admin/">⚙ <span>Admin</span></a>{% endif %}
