@@ -100,6 +100,11 @@
   {% if remix_results %}<div class="gap-list" style="margin-top:12px">{% for r in remix_results %}<div class="gap-row"><div><b>{{ r.replace }} → {{ r.with }}</b><span>{{ r.reason }}</span></div></div>{% endfor %}</div>{% endif %}
 </section>
 
+<section class="panel">
+  <div class="section-head compact"><div><span class="eyebrow">10-PIECE CAPSULE</span><h3>A compact wardrobe for a busy week</h3></div><a class="text-link" href="/wardrobe/">Manage pieces →</a></div>
+  {% if capsule %}<div class="capsule-grid">{% for item in capsule %}<a class="capsule-item" href="/wardrobe/{{ item.pk }}/edit/">{% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">{% else %}<span>👕</span>{% endif %}<div><b>{{ item.name }}</b><small>{{ item.get_category_display }}</small></div></a>{% endfor %}</div>{% else %}<div class="style-empty">Add clean pieces to build your first capsule.</div>{% endif %}
+</section>
+
 {% if trip %}
 <section class="panel">
   <div class="section-head compact"><div><span class="eyebrow">TRAVEL CAPSULE</span><h3>{{ trip.name }} · {{ trip.destination }}</h3></div><a class="text-link" href="/trips/{{ trip.pk }}/">Open trip →</a></div>
