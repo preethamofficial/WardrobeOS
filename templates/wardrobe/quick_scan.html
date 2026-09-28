@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Quick Scan · WardrobeOS{% endblock %}
+{% block eyebrow %}WARDROBE VISION{% endblock %}
+{% block heading %}Scan your wardrobe in batches{% endblock %}
+{% block content %}
+<section class="style-hero scanner-hero">
+  <div><span class="style-kicker">MULTI-IMAGE VISION PIPELINE</span>
+    <h2>Turn a camera roll into structured wardrobe data.</h2>
+    <p>Select up to 8 garment photos. WardrobeOS will run the same existing image enhancement, thumbnail, colour, pattern and optional AI garment analysis used by individual uploads.</p>
+  </div>
+  <div class="pulse-orb"><div><b>8</b><span> max</span></div><small>photos / scan</small></div>
+</section>
+<section class="panel scanner-panel">
+<form method="post" enctype="multipart/form-data" id="scan-form">{% csrf_token %}
+  <label class="scan-drop" for="scan-images">
+    <span class="scan-icon">＋</span><strong>Choose garment photos</strong>
+    <small>JPEG, PNG or WebP · up to 8 images</small>
+    <input id="scan-images" name="images" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
+  </label>
+  <div id="scan-preview" class="scan-preview"></div>
+  <button class="btn btn-accent" type="submit">Scan wardrobe →</button>
+</form>
+</section>
+<section class="style-grid">
+  <div class="panel"><span class="eyebrow">WHAT GETS DETECTED</span><h3>One pipeline, one source of truth</h3>
+    <div class="scan-points"><span>✓ Dominant colour + family</span><span>✓ Pattern</span><span>✓ Category</span><span>✓ Material when AI is available</span><span>✓ Formality</span><span>✓ Thumbnail for faster browsing</span></div>
+  </div>
+  <div class="panel"><span class="eyebrow">PRIVACY</span><h3>Your photos stay in your wardrobe</h3>
+    <p class="style-muted">The local colour pipeline works without an AI key. When a configured vision provider is used, only the uploaded image is sent to that provider for analysis.</p>
+  </div>
+</section>
+<script>
+(function(){
+ const input=document.getElementById("scan-images"), preview=document.getElementById("scan-preview"), form=document.getElementById("scan-form");
+ input.addEventListener("change",function(){
+   preview.innerHTML="";
+   const files=[...input.files].slice(0,8);
+   files.forEach(f=>{const box=document.createElement("div");box.className="scan-thumb";const img=document.createElement("img");img.src=URL.createObjectURL(f);img.alt=f.name;box.appendChild(img);const s=document.createElement("small");s.textContent=f.name;box.appendChild(s);preview.appendChild(box)});
+ });
+ form.addEventListener("submit",function(){const b=form.querySelector("button");b.disabled=true;b.textContent="Analysing wardrobe…";});
+})();
+</script>
+{% endblock %}
