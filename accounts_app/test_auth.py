@@ -1,0 +1,56 @@
+from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.core import mail
+from django.test import TestCase, override_settings
+from django.urls import reverse
+
+from allauth.account.models import EmailAddress
+
+
+@override_settings(
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ACCOUNT_EMAIL_VERIFICATION="mandatory",
+)
+class AuthenticationFlowTests(TestCase):
+    def setUp(self):
+        self.user = get_user_model().objects.create_user(
+            username="preetham-test",
+            email="preetham-test@example.com",
+            password="StrongPass123!",
+        )
+        self.email = EmailAddress.objects.create(
+            user=self.user,
+            email=self.user.email,
+            primary=True,
+            verified=False,
+        )
+
+    def test_authentication_is_email_only_and_email_is_required(self):
+        self.assertEqual(settings.ACCOUNT_LOGIN_METHODS, {"email"})
+        self.assertTrue(settings.ACCOUNT_SIGNUP_FIELDS[1].endswith("*"))
+        response = self.client.post(
+            reverse("account_login"),
+            {"login": "preetham-test", "password": "StrongPass123!"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_verified_email_can_sign_in(self):
+        self.email.verified = True
+        self.email.save(update_fields=["verified"])
+        response = self.client.post(
+            reverse("account_login"),
+            {"login": self.user.email, "password": "StrongPass123!"},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(str(self.client.session.get("_auth_user_id")), str(self.user.pk))
+
+    def test_password_reset_request_sends_email(self):
+        response = self.client.post(
+            reverse("account_reset_password"),
+            {"email": self.user.email},
+        )
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Password Reset", mail.outbox[0].subject)
+        self.assertIn("password reset", mail.outbox[0].body.lower())
