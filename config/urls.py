@@ -15,5 +15,5 @@ path("wardrobe/",include("wardrobe.urls")),path("outfits/",include("outfits.urls
 path("accounts/",include("allauth.urls")),
 path("profile/",include("accounts_app.urls")),
 path("planner/",include("planner.urls")),path("laundry/",include("laundry.urls")),
-path("analytics/",include("analytics_app.urls")),path("trips/",include("trips.urls")),
+path("analytics/",include("analytics_app.urls")),path("trips/",include("trips.urls")),path("style/",include("styleos.urls")),
 path("lab/",include("promptlab.urls"))]
