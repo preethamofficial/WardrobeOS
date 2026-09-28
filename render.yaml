@@ -58,6 +58,20 @@ services:
         value: "True"
       - key: LOG_LEVEL
         value: "INFO"
+      # Account verification and password reset require a real SMTP provider.
+      # Add these secret values in the Render dashboard; never commit credentials.
+      - key: EMAIL_HOST
+        sync: false
+      - key: EMAIL_PORT
+        value: "587"
+      - key: EMAIL_HOST_USER
+        sync: false
+      - key: EMAIL_HOST_PASSWORD
+        sync: false
+      - key: EMAIL_USE_TLS
+        value: "True"
+      - key: DEFAULT_FROM_EMAIL
+        sync: false
       - key: DEFAULT_CITY
         value: "Bengaluru"
       - key: DEFAULT_LATITUDE
