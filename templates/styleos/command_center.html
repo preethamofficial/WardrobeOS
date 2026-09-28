@@ -1,5 +1,75 @@
 {% extends "base.html" %}
-{% block title %}Style Intelligence · WardrobeOS{% endblock %}
+{% block title %}Style Intelligence · WardrobeOS<section class="style-grid">
+  <section class="panel genome-card">
+    <div class="section-head compact"><div><span class="eyebrow">STYLE GENOME</span><h3>Your personal style fingerprint</h3></div><span class="style-status">{{ genome.confidence }}% signal</span></div>
+    <div class="genome-main">
+      <div class="genome-stat"><span>Default mode</span><b>{{ genome.formality|title }}</b></div>
+      <div class="genome-stat"><span>Everyday context</span><b>{{ genome.occasion|title }}</b></div>
+      <div class="genome-stat"><span>Pattern preference</span><b>{{ genome.pattern|title }}</b></div>
+    </div>
+    <div class="chip-row">{% for name,count in genome.palette %}<span class="style-chip">{{ name|title }} · {{ count }}</span>{% endfor %}</div>
+    <p class="style-muted">The genome is derived from what you actually own and wear—not a generic personality quiz.</p>
+  </section>
+  <section class="panel coach-card">
+    <span class="eyebrow">AI STYLE COACH</span><h3>Ask about your actual closet.</h3>
+    <p class="style-muted">The coach receives structured wardrobe facts and is instructed not to invent pieces.</p>
+    <form method="post" action="{% url 'style_coach' %}">{% csrf_token %}
+      {{ coach_form.question }}
+      <button class="btn btn-accent" type="submit">Ask my wardrobe →</button>
+    </form>
+    {% if coach_answer %}<div class="coach-answer">{{ coach_answer|linebreaksbr }}</div>{% endif %}
+  </section>
+</section>
+
+<section class="style-grid">
+  <section class="panel">
+    <div class="section-head compact"><div><span class="eyebrow">SMART SHOPPING GAP</span><h3>Buy for a reason, not because the app can sell you something</h3></div></div>
+    {% if gaps %}
+      <div class="gap-list">{% for gap in gaps %}
+        <div class="gap-row"><div><b>{{ gap.label }}</b><span>{{ gap.reason }} · {{ gap.priority }} priority</span></div><strong>Need {{ gap.missing }}</strong></div>
+      {% endfor %}</div>
+      <p class="style-muted">These are coverage gaps, not purchase recommendations. Check your real needs, budget and existing alternatives before buying.</p>
+    {% else %}<div class="style-empty">No obvious category gaps. Your current wardrobe has broad coverage.</div>{% endif %}
+  </section>
+  <section class="panel">
+    <div class="section-head compact"><div><span class="eyebrow">WARDROBE ROI</span><h3>What your closet is actually returning</h3></div></div>
+    <div class="roi-grid">
+      <div><span>Total tracked spend</span><b>₹{{ roi.spend|floatformat:0 }}</b></div>
+      <div><span>Logged wears</span><b>{{ roi.wears }}</b></div>
+      <div><span>Average cost / wear</span><b>₹{{ roi.cpw|floatformat:0 }}</b></div>
+      <div><span>Unused value</span><b>₹{{ roi.unused_value|floatformat:0 }}</b></div>
+    </div>
+    <div class="roi-bar"><i style="width:{{ roi.active_pct }}%"></i></div><small class="style-muted">{{ roi.active_pct }}% of pieces have a wear history.</small>
+  </section>
+</section>
+
+<section class="panel">
+  <div class="section-head compact"><div><span class="eyebrow">7-DAY STYLE FORECAST</span><h3>Weather + plans before you choose an outfit</h3></div><a class="text-link" href="/planner/">Open planner →</a></div>
+  {% if daily %}
+  <div class="forecast-intel">{% for day in daily %}
+    <div class="day-card"><b>{{ day.date }}</b><strong>{% if day.weather.max %}{{ day.weather.min|floatformat:0 }}°–{{ day.weather.max|floatformat:0 }}°{% else %}—{% endif %}</strong>
+      <span>{{ day.plan.occasion|title|default:"Open day" }}</span><small>{{ day.plan.location|default:"No location" }}</small></div>
+  {% endfor %}</div>
+  {% else %}<div class="style-empty">Seven-day weather data is unavailable right now. Your core wardrobe intelligence still works offline.</div>{% endif %}
+</section>
+
+{% if trip %}
+<section class="panel">
+  <div class="section-head compact"><div><span class="eyebrow">TRAVEL CAPSULE</span><h3>{{ trip.name }} · {{ trip.destination }}</h3></div><a class="text-link" href="/trips/{{ trip.pk }}/">Open trip →</a></div>
+  <p class="style-muted">A compact selection from your current wardrobe, prioritizing coverage and reusable pieces.</p>
+  <div class="capsule-grid">{% for item in trip_capsule %}
+    <a class="capsule-item" href="/wardrobe/{{ item.pk }}/edit/">{% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">{% else %}<span>👕</span>{% endif %}<div><b>{{ item.name }}</b><small>{{ item.get_category_display }}</small></div></a>
+  {% endfor %}</div>
+</section>
+{% endif %}
+
+{% if remix_results %}
+<section class="panel">
+  <div class="section-head compact"><div><span class="eyebrow">OUTFIT REMIX</span><h3>Fresh combinations from pieces you already own</h3></div></div>
+  <div class="gap-list">{% for r in remix_results %}<div class="gap-row"><div><b>{{ r.replace }} → {{ r.with }}</b><span>{{ r.reason }}</span></div></div>{% endfor %}</div>
+</section>
+{% endif %}
+{% endblock %}
 {% block eyebrow %}STYLE INTELLIGENCE{% endblock %}
 {% block heading %}Your wardrobe, thinking ahead{% endblock %}
 
