@@ -7,7 +7,8 @@ from django.views.decorators.http import require_POST
 
 from ai.matching import recommend
 from config.scoping import get_scoped, owner_of, scoped_items, scoped_outfits
-from weather.service import get_weather, summarize\nfrom accounts_app.models import resolve_location
+from weather.service import get_weather, summarize
+from accounts_app.models import resolve_location
 
 from .models import Feedback, Outfit
 
