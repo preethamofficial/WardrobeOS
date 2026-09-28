@@ -48,3 +48,23 @@ box-shadow:0 0 0 12px rgba(255,255,255,.035),0 20px 50px rgba(0,0,0,.25);positio
 @media(max-width:1000px){.style-hero{grid-template-columns:1fr}.pulse-orb{width:145px;height:145px}.style-grid,.style-grid-main{grid-template-columns:1fr}.style-outfit{grid-template-columns:1fr}.style-reasons{margin-top:4px}.capsule-grid{grid-template-columns:repeat(4,1fr)}}
 @media(max-width:700px){.style-hero{padding:25px}.style-hero h2{font-size:32px}.style-stat-strip{grid-template-columns:1fr 1fr}.style-metrics,.mission-grid{grid-template-columns:1fr}.style-outfit-items{grid-template-columns:1fr 1fr}.capsule-grid{grid-template-columns:repeat(2,1fr)}.upcoming-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.style-stat-strip{grid-template-columns:1fr}.style-outfit-items{grid-template-columns:1fr}.capsule-grid,.upcoming-grid{grid-template-columns:1fr}.style-actions{flex-direction:column}.style-actions .btn{width:100%;text-align:center}}
+
+/* Global product polish: loaded after app.css so existing feature pages inherit
+   the same surfaces without a risky rewrite of their markup. */
+.dashboard-bridge{display:flex;align-items:center;justify-content:space-between;gap:22px;
+background:linear-gradient(135deg,var(--surface),var(--surface-2));border:1px solid var(--line);
+border-radius:20px;padding:20px 22px;margin:0 0 22px;box-shadow:var(--shadow)}
+.dashboard-bridge h3{margin:5px 0 4px;font-size:18px}.dashboard-bridge p{margin:0;color:var(--muted);font-size:12px;line-height:1.5}
+.dashboard-bridge .eyebrow{color:var(--accent)}
+.btn-accent{background:var(--accent);border:1px solid var(--accent);color:#fff;padding:10px 15px;border-radius:11px;text-decoration:none;font-weight:800;font-size:13px;display:inline-flex;align-items:center;justify-content:center}
+.btn-accent:hover{color:#fff;filter:brightness(1.06);transform:translateY(-1px)}
+.btn{transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease,background .15s ease}
+.btn:hover{transform:translateY(-1px)}
+img{content-visibility:auto}
+@media(max-width:760px){
+  .dashboard-bridge{align-items:flex-start;flex-direction:column}
+  .dashboard-bridge .btn{width:100%}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition:none!important}
+}
