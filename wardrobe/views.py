@@ -156,3 +156,27 @@ def item_wear(request, pk):
         item.wear()
         messages.success(request, f"Enjoy {item.name} - rotation updated.")
     return redirect("wardrobe_list")
+
+def quick_scan(request):
+    """Batch-import up to eight garment photos through the existing analysis pipeline."""
+    if request.method == "POST":
+        uploads=request.FILES.getlist("images")[:8]
+        created=0
+        for index, upload in enumerate(uploads, 1):
+            form=ItemForm({"name": f"Scanned piece {index}", "category":"other",
+                           "formality":"casual","status":"clean","season":"all",
+                           "purchase_price":"0"}, {"image":upload})
+            if not form.is_valid():
+                continue
+            item=form.save(commit=False)
+            if request.user.is_authenticated:
+                item.owner=request.user
+            item.save()
+            analyse_item(item)
+            created+=1
+        if created:
+            messages.success(request, f"Scanned {created} piece{'s' if created != 1 else ''}. Colours and garment metadata were analysed automatically.")
+        else:
+            messages.error(request, "No valid garment images were found. Use JPEG, PNG or WebP photos.")
+        return redirect("wardrobe_list")
+    return render(request, "wardrobe/quick_scan.html", {"max_files": 8})
