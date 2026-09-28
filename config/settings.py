@@ -72,10 +72,16 @@ LOGOUT_REDIRECT_URL="/"
 # Email (and username) login + open signup. Verification defaults to "none" so no
 # SMTP account is needed for a free deployment; set ACCOUNT_EMAIL_VERIFICATION to
 # "optional" or "mandatory" and fill the EMAIL_* variables below to send real mail.
-ACCOUNT_LOGIN_METHODS={"username","email"}
-ACCOUNT_SIGNUP_FIELDS=["username*","email","password1*","password2*"]
-ACCOUNT_EMAIL_VERIFICATION=env("ACCOUNT_EMAIL_VERIFICATION","none").strip().lower() or "none"
+# Authentication is email-first: usernames remain an internal Django identifier,
+# but users can no longer sign in with a username. Every password account must
+# provide and verify a unique email address before access is granted.
+ACCOUNT_LOGIN_METHODS={"email"}
+ACCOUNT_SIGNUP_FIELDS=["username*","email*","password1*","password2*"]
+ACCOUNT_EMAIL_VERIFICATION="mandatory"
 ACCOUNT_UNIQUE_EMAIL=True
+ACCOUNT_PREVENT_ENUMERATION=True
+ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True
 SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
 # SMTP (optional). Any provider works; Gmail needs an App Password, and free
 # tiers such as Brevo/Resend/Mailgun SMTP also work. Left unset -> console email.
