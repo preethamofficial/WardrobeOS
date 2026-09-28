@@ -1,5 +1,46 @@
 {% extends "base.html" %}
-{% block title %}Style Intelligence · WardrobeOS<section class="style-grid">
+{% block title %}Style Intelligence · WardrobeOS{% endblock %}
+{% block eyebrow %}STYLE INTELLIGENCE{% endblock %}
+{% block heading %}Your wardrobe, thinking ahead{% endblock %}
+{% block content %}
+
+<section class="style-hero">
+  <div>
+    <span class="style-kicker">WARDROBEOS COMMAND CENTER</span>
+    <h2>Turn your closet into a system.</h2>
+    <p>One place for the signals behind your style: what you wear, what is ready, what is missing and what to do next.</p>
+    <div class="style-actions">
+      <a class="btn btn-light" href="/outfits/">✦ Build an outfit</a>
+      <a class="btn btn-outline-light" href="/planner/">▦ Plan the week</a>
+    </div>
+  </div>
+  <div class="pulse-orb" style="--pulse: {{ pulse }};">
+    <div><b>{{ pulse }}</b><span>/100</span></div><small>{{ pulse_label }}</small>
+  </div>
+</section>
+
+<div class="style-grid style-grid-main">
+  <section class="panel style-pulse-panel">
+    <div class="section-head compact"><div><span class="eyebrow">STYLE PULSE</span><h3>Why your score looks this way</h3></div><span class="style-status">{{ pulse_label }}</span></div>
+    <p class="style-muted">{{ pulse_text }}</p>
+    <div class="style-metrics">{% for name,value,note in pulse_metrics %}
+      <div class="style-metric"><div class="metric-top"><b>{{ name }}</b><span>{{ value }}%</span></div><div class="metric-track"><i style="width:{{ value }}%"></i></div><small>{{ note }}</small></div>
+    {% endfor %}</div>
+  </section>
+  <aside class="panel next-action"><span class="eyebrow">NEXT BEST ACTION</span><div class="action-icon">→</div>
+    <h3>Use the intelligence layer</h3><p>Open the modules below to understand your wardrobe before adding anything new.</p>
+    <a class="btn btn-accent" href="/wardrobe/scan/">Scan more clothes →</a>
+  </aside>
+</div>
+
+<div class="style-stat-strip">
+  <div><span>Pieces</span><b>{{ items_count }}</b><small>digital closet</small></div>
+  <div><span>Worn</span><b>{{ worn_count }}</b><small>real history</small></div>
+  <div><span>Unworn</span><b>{{ never_count }}</b><small>need a first outing</small></div>
+  <div><span>Care queue</span><b>{{ laundry_count }}</b><small>outside clean rotation</small></div>
+</div>
+
+<section class="style-grid">
   <section class="panel genome-card">
     <div class="section-head compact"><div><span class="eyebrow">STYLE GENOME</span><h3>Your personal style fingerprint</h3></div><span class="style-status">{{ genome.confidence }}% signal</span></div>
     <div class="genome-main">
@@ -8,7 +49,7 @@
       <div class="genome-stat"><span>Pattern preference</span><b>{{ genome.pattern|title }}</b></div>
     </div>
     <div class="chip-row">{% for name,count in genome.palette %}<span class="style-chip">{{ name|title }} · {{ count }}</span>{% endfor %}</div>
-    <p class="style-muted">The genome is derived from what you actually own and wear—not a generic personality quiz.</p>
+    <p class="style-muted">Derived from your actual wardrobe and wear signals—not a personality quiz.</p>
   </section>
   <section class="panel coach-card">
     <span class="eyebrow">AI STYLE COACH</span><h3>Ask about your actual closet.</h3>
@@ -23,34 +64,40 @@
 
 <section class="style-grid">
   <section class="panel">
-    <div class="section-head compact"><div><span class="eyebrow">SMART SHOPPING GAP</span><h3>Buy for a reason, not because the app can sell you something</h3></div></div>
-    {% if gaps %}
-      <div class="gap-list">{% for gap in gaps %}
-        <div class="gap-row"><div><b>{{ gap.label }}</b><span>{{ gap.reason }} · {{ gap.priority }} priority</span></div><strong>Need {{ gap.missing }}</strong></div>
-      {% endfor %}</div>
-      <p class="style-muted">These are coverage gaps, not purchase recommendations. Check your real needs, budget and existing alternatives before buying.</p>
+    <div class="section-head compact"><div><span class="eyebrow">SMART SHOPPING GAP</span><h3>Identify coverage gaps before buying</h3></div></div>
+    {% if gaps %}<div class="gap-list">{% for gap in gaps %}
+      <div class="gap-row"><div><b>{{ gap.label }}</b><span>{{ gap.reason }} · {{ gap.priority }} priority</span></div><strong>Need {{ gap.missing }}</strong></div>
+    {% endfor %}</div>
+    <p class="style-muted">These are coverage signals, not purchase commands. Check your actual needs and budget first.</p>
     {% else %}<div class="style-empty">No obvious category gaps. Your current wardrobe has broad coverage.</div>{% endif %}
   </section>
   <section class="panel">
     <div class="section-head compact"><div><span class="eyebrow">WARDROBE ROI</span><h3>What your closet is actually returning</h3></div></div>
     <div class="roi-grid">
-      <div><span>Total tracked spend</span><b>₹{{ roi.spend|floatformat:0 }}</b></div>
-      <div><span>Logged wears</span><b>{{ roi.wears }}</b></div>
-      <div><span>Average cost / wear</span><b>₹{{ roi.cpw|floatformat:0 }}</b></div>
-      <div><span>Unused value</span><b>₹{{ roi.unused_value|floatformat:0 }}</b></div>
+      <div><span>Tracked spend</span><b>₹{{ roi.spend|floatformat:0 }}</b></div><div><span>Logged wears</span><b>{{ roi.wears }}</b></div>
+      <div><span>Average cost / wear</span><b>₹{{ roi.cpw|floatformat:0 }}</b></div><div><span>Unused value</span><b>₹{{ roi.unused_value|floatformat:0 }}</b></div>
     </div>
     <div class="roi-bar"><i style="width:{{ roi.active_pct }}%"></i></div><small class="style-muted">{{ roi.active_pct }}% of pieces have a wear history.</small>
   </section>
 </section>
 
 <section class="panel">
-  <div class="section-head compact"><div><span class="eyebrow">7-DAY STYLE FORECAST</span><h3>Weather + plans before you choose an outfit</h3></div><a class="text-link" href="/planner/">Open planner →</a></div>
-  {% if daily %}
-  <div class="forecast-intel">{% for day in daily %}
-    <div class="day-card"><b>{{ day.date }}</b><strong>{% if day.weather.max %}{{ day.weather.min|floatformat:0 }}°–{{ day.weather.max|floatformat:0 }}°{% else %}—{% endif %}</strong>
-      <span>{{ day.plan.occasion|title|default:"Open day" }}</span><small>{{ day.plan.location|default:"No location" }}</small></div>
-  {% endfor %}</div>
-  {% else %}<div class="style-empty">Seven-day weather data is unavailable right now. Your core wardrobe intelligence still works offline.</div>{% endif %}
+  <div class="section-head compact"><div><span class="eyebrow">7-DAY STYLE FORECAST</span><h3>Weather + plans before you choose</h3></div><a class="text-link" href="/planner/">Open planner →</a></div>
+  {% if daily %}<div class="forecast-intel">{% for day in daily %}
+    <div class="day-card"><b>{{ day.date }}</b><strong>{% if day.weather.max is not None %}{{ day.weather.min|floatformat:0 }}°–{{ day.weather.max|floatformat:0 }}°{% else %}—{% endif %}</strong>
+      <span>{% if day.plan %}{{ day.plan.occasion|title }}{% else %}Open day{% endif %}</span><small>{% if day.plan %}{{ day.plan.location|default:"No location" }}{% else %}No plan{% endif %}</small>
+    </div>
+  {% endfor %}</div>{% else %}<div class="style-empty">Seven-day weather data is unavailable right now. Core wardrobe intelligence still works.</div>{% endif %}
+</section>
+
+<section class="panel">
+  <div class="section-head compact"><div><span class="eyebrow">REMIX LAB</span><h3>Refresh outfits without buying anything</h3></div></div>
+  <div class="remix-grid">{% for outfit in recent_outfits %}
+    <div class="remix-card"><div><b>{{ outfit.name }}</b><span>{{ outfit.item_count }} pieces · {{ outfit.score|floatformat:0 }} score</span></div>
+      <form method="post" action="{% url 'style_remix' outfit.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Remix →</button></form>
+    </div>
+  {% empty %}<div class="style-empty">Save an outfit first and Remix Lab will find same-category swaps.</div>{% endfor %}</div>
+  {% if remix_results %}<div class="gap-list" style="margin-top:12px">{% for r in remix_results %}<div class="gap-row"><div><b>{{ r.replace }} → {{ r.with }}</b><span>{{ r.reason }}</span></div></div>{% endfor %}</div>{% endif %}
 </section>
 
 {% if trip %}
@@ -64,166 +111,11 @@
 {% endif %}
 
 <section class="panel">
-  <div class="section-head compact"><div><span class="eyebrow">REMIX LAB</span><h3>Refresh an outfit without starting over</h3></div></div>
-  <div class="remix-grid">{% for outfit in recent_outfits %}
-    <div class="remix-card"><div><b>{{ outfit.name }}</b><span>{{ outfit.item_count }} pieces · {{ outfit.score|floatformat:0 }} score</span></div>
-      <form method="post" action="{% url 'style_remix' outfit.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Remix →</button></form>
-    </div>
-  {% empty %}<div class="style-empty">Save an outfit first and the Remix Lab will find same-category swaps.</div>{% endfor %}</div>
+  <div class="section-head compact"><div><span class="eyebrow">TODAY</span><h3>Weather-aware outfit brief</h3></div><span class="weather-mini">{{ weather.emoji }} {{ weather.label }}{% if weather.temp %} · {{ weather.temp }}°C{% endif %}</span></div>
+  {% if ootd %}<div class="style-outfit"><div class="style-outfit-items">{% for item in ootd.items %}
+    <div class="style-item">{% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">{% else %}<span>👕</span>{% endif %}<b>{{ item.name }}</b><small>{{ item.get_category_display }}</small></div>
+  {% endfor %}</div><div class="style-reasons"><b>Why this combination?</b>{% for reason in ootd.why %}<span>✓ {{ reason }}</span>{% endfor %}</div></div>
+  {% else %}<div class="style-empty">Add clean wardrobe pieces to generate your first outfit brief.</div>{% endif %}
 </section>
 
-{% if remix_results %}
-<section class="panel">
-  <div class="section-head compact"><div><span class="eyebrow">OUTFIT REMIX</span><h3>Fresh combinations from pieces you already own</h3></div></div>
-  <div class="gap-list">{% for r in remix_results %}<div class="gap-row"><div><b>{{ r.replace }} → {{ r.with }}</b><span>{{ r.reason }}</span></div></div>{% endfor %}</div>
-</section>
-{% endif %}
-{% endblock %}
-{% block eyebrow %}STYLE INTELLIGENCE{% endblock %}
-{% block heading %}Your wardrobe, thinking ahead{% endblock %}
-
-{% block content %}
-<section class="style-hero">
-  <div>
-    <span class="style-kicker">WARDROBEOS COMMAND CENTER</span>
-    <h2>Turn your closet into a system.</h2>
-    <p>One place for the signals behind your style: what you wear, what you ignore, what is ready, and what to do next.</p>
-    <div class="style-actions">
-      <a class="btn btn-light" href="/outfits/">✦ Build an outfit</a>
-      <a class="btn btn-outline-light" href="/planner/">▦ Plan the week</a>
-    </div>
-  </div>
-  <div class="pulse-orb" style="--pulse: {{ pulse }};">
-    <div><b>{{ pulse }}</b><span>/100</span></div>
-    <small>{{ pulse_label }}</small>
-  </div>
-</section>
-
-<div class="style-grid style-grid-main">
-  <section class="panel style-pulse-panel">
-    <div class="section-head compact">
-      <div><span class="eyebrow">STYLE PULSE</span><h3>Why your score looks this way</h3></div>
-      <span class="style-status">{{ pulse_label }}</span>
-    </div>
-    <p class="style-muted">{{ pulse_text }}</p>
-    <div class="style-metrics">
-      {% for name,value,note in pulse_metrics %}
-      <div class="style-metric">
-        <div class="metric-top"><b>{{ name }}</b><span>{{ value }}%</span></div>
-        <div class="metric-track"><i style="width:{{ value }}%"></i></div>
-        <small>{{ note }}</small>
-      </div>
-      {% endfor %}
-    </div>
-  </section>
-
-  <aside class="panel next-action">
-    <span class="eyebrow">NEXT BEST ACTION</span>
-    <div class="action-icon">→</div>
-    <h3>{{ next_action.title }}</h3>
-    <p>{{ next_action.text }}</p>
-    <a class="btn btn-accent" href="{{ next_action.href }}">{{ next_action.label }} →</a>
-  </aside>
-</div>
-
-<div class="style-stat-strip">
-  <div><span>Pieces</span><b>{{ items_count }}</b><small>digital closet</small></div>
-  <div><span>Worn</span><b>{{ worn_count }}</b><small>have real history</small></div>
-  <div><span>Unworn</span><b>{{ never_count }}</b><small>need a first outing</small></div>
-  <div><span>Care queue</span><b>{{ laundry_count }}</b><small>outside clean rotation</small></div>
-</div>
-
-<div class="style-grid">
-  <section class="panel">
-    <div class="section-head compact">
-      <div><span class="eyebrow">TODAY</span><h3>Weather-aware outfit brief</h3></div>
-      <span class="weather-mini">{{ weather.emoji }} {{ weather.label }}{% if weather.temp %} · {{ weather.temp }}°C{% endif %}</span>
-    </div>
-    {% if ootd %}
-      <div class="style-outfit">
-        <div class="style-outfit-items">
-          {% for item in ootd.items %}
-          <div class="style-item">
-            {% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">{% else %}<span>👕</span>{% endif %}
-            <b>{{ item.name }}</b><small>{{ item.get_category_display }}</small>
-          </div>
-          {% endfor %}
-        </div>
-        <div class="style-reasons">
-          <b>Why this combination?</b>
-          {% for reason in ootd.why %}<span>✓ {{ reason }}</span>{% endfor %}
-        </div>
-      </div>
-    {% else %}
-      <div class="style-empty">Add clean wardrobe pieces to generate your first outfit brief.</div>
-    {% endif %}
-  </section>
-
-  <section class="panel">
-    <div class="section-head compact">
-      <div><span class="eyebrow">COLOR SIGNAL</span><h3>Your palette is becoming a fingerprint</h3></div>
-    </div>
-    {% if top_colors %}
-      <div class="color-signal">
-        {% for name,count in top_colors %}
-        <div class="color-signal-row"><span>{{ name }}</span><b>{{ count }}</b></div>
-        {% endfor %}
-      </div>
-      <a class="text-link" href="/analytics/">Open full analytics →</a>
-    {% else %}
-      <div class="style-empty">Upload garment photos and WardrobeOS will build your palette automatically.</div>
-    {% endif %}
-  </section>
-</div>
-
-<section class="panel">
-  <div class="section-head compact">
-    <div><span class="eyebrow">WARDROBE MISSIONS</span><h3>Small actions, visible progress</h3></div>
-    <span class="section-note">No streak pressure. Just useful nudges.</span>
-  </div>
-  <div class="mission-grid">
-    {% for mission in missions %}
-    <article class="mission mission-{{ mission.tone }}">
-      <div class="mission-icon">{{ mission.icon }}</div>
-      <div><h4>{{ mission.title }}</h4><p>{{ mission.text }}</p><a href="{{ mission.action }}">{{ mission.action_text }} →</a></div>
-    </article>
-    {% empty %}
-    <div class="style-empty">Your wardrobe is in a good place. Add a new piece or log another outfit to generate fresh missions.</div>
-    {% endfor %}
-  </div>
-</section>
-
-<section class="panel">
-  <div class="section-head compact">
-    <div><span class="eyebrow">10-PIECE CAPSULE</span><h3>A compact wardrobe for a busy week</h3></div>
-    <a class="text-link" href="/wardrobe/">Manage pieces →</a>
-  </div>
-  <p class="style-muted">Built from clean items using category coverage, wear history and color diversity. No external AI call required.</p>
-  {% if capsule %}
-    <div class="capsule-grid">
-      {% for item in capsule %}
-      <a class="capsule-item" href="/wardrobe/{{ item.pk }}/edit/">
-        {% if item.display_image %}<img src="{{ item.display_image }}" loading="lazy" alt="{{ item.name }}">{% else %}<span>👕</span>{% endif %}
-        <div><b>{{ item.name }}</b><small>{{ item.get_category_display }} · {{ item.color|default:"Colour pending" }}</small></div>
-      </a>
-      {% endfor %}
-    </div>
-  {% else %}
-    <div class="style-empty">You need a few clean pieces before a capsule can be built.</div>
-  {% endif %}
-</section>
-
-{% if upcoming %}
-<section class="panel">
-  <div class="section-head compact">
-    <div><span class="eyebrow">UP NEXT</span><h3>Your upcoming style context</h3></div>
-    <a class="text-link" href="/planner/">Open planner →</a>
-  </div>
-  <div class="upcoming-grid">
-    {% for plan in upcoming %}
-    <div class="upcoming"><b>{{ plan.date|date:"D, M j" }}</b><strong>{{ plan.occasion|title }}</strong><span>{{ plan.location|default:"No location set" }}</span></div>
-    {% endfor %}
-  </div>
-</section>
-{% endif %}
 {% endblock %}
