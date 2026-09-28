@@ -128,6 +128,10 @@ _REDIS_URL=env("REDIS_URL","").strip()
 if _REDIS_URL:
     CACHES={"default":{"BACKEND":"django.core.cache.backends.redis.RedisCache",
                        "LOCATION":_REDIS_URL}}
+else:
+    # Short-lived per-process cache for external read paths such as weather.
+    CACHES={"default":{"BACKEND":"django.core.cache.backends.locmem.LocMemCache",
+                       "LOCATION":"wardrobeos-default"}}
 DEFAULT_AUTO_FIELD="django.db.models.BigAutoField"
 X_FRAME_OPTIONS="DENY"; SECURE_CONTENT_TYPE_NOSNIFF=True
 SESSION_COOKIE_SAMESITE="Lax"; CSRF_COOKIE_SAMESITE="Lax"
