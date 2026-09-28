@@ -1,20 +1,31 @@
+{% load static %}
 <!doctype html>
 <html lang="en" data-theme="light">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f6f7fb">
+<meta name="description" content="WardrobeOS — personal style intelligence for your wardrobe, outfits and plans.">
 <title>{% block title %}WardrobeOS{% endblock %}</title>
-<link rel="stylesheet" href="/static/vendor/bootstrap.min.css">
-<link rel="stylesheet" href="/static/vendor/fonts.css">
-<link rel="stylesheet" href="/static/css/app.css">
-<script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="{% static 'vendor/fonts.css' %}">
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+<script>
+(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t;}catch(e){}})();
+</script>
 </head>
 <body class="auth-page">
 <main class="auth-shell">
-<a class="auth-brand" href="/"><span class="auth-brand-mark">✦</span><span>WardrobeOS</span></a>
+<header class="auth-header">
+<a class="auth-brand" href="/" aria-label="WardrobeOS home">
+<span class="auth-brand-mark" aria-hidden="true">✦</span>
+<span>WardrobeOS</span>
+</a>
+<span class="auth-secure"><span aria-hidden="true">●</span> PRIVATE WORKSPACE</span>
+</header>
 <div class="auth-layout">
-<section class="auth-intro">
+<section class="auth-intro" aria-labelledby="auth-hero-title">
 <span class="auth-kicker">PERSONAL STYLE INTELLIGENCE</span>
-<h1>Dress smarter.<br><span>Live lighter.</span></h1>
+<h1 id="auth-hero-title">Dress smarter.<br><em>Live lighter.</em></h1>
 <p>Your wardrobe, outfits, plans and style intelligence in one private workspace.</p>
 <div class="auth-points">
 <div><b>01</b><span>Understand your wardrobe</span></div>
@@ -22,8 +33,11 @@
 <div><b>03</b><span>Learn your personal style</span></div>
 </div>
 </section>
-<section class="auth-panel">{% block content %}{% endblock %}</section>
+<section class="auth-panel" aria-label="Account access">
+{% block content %}{% endblock %}
+</section>
 </div>
-<footer class="auth-footer">Private by design · WardrobeOS</footer>
+<footer class="auth-footer"><span>WardrobeOS</span><span>Private by design</span><span>Made for your personal style</span></footer>
 </main>
-</body></html>
+</body>
+</html>
