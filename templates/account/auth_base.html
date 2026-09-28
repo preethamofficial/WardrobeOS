@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}WardrobeOS{% endblock %}</title>
+<link rel="stylesheet" href="/static/vendor/bootstrap.min.css">
+<link rel="stylesheet" href="/static/vendor/fonts.css">
+<link rel="stylesheet" href="/static/css/app.css">
+<script>try{const t=localStorage.getItem('theme');if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+</head>
+<body class="auth-page">
+<main class="auth-shell">
+<a class="auth-brand" href="/"><span class="auth-brand-mark">✦</span><span>WardrobeOS</span></a>
+<div class="auth-layout">
+<section class="auth-intro">
+<span class="auth-kicker">PERSONAL STYLE INTELLIGENCE</span>
+<h1>Dress smarter.<br><span>Live lighter.</span></h1>
+<p>Your wardrobe, outfits, plans and style intelligence in one private workspace.</p>
+<div class="auth-points">
+<div><b>01</b><span>Understand your wardrobe</span></div>
+<div><b>02</b><span>Build better outfits</span></div>
+<div><b>03</b><span>Learn your personal style</span></div>
+</div>
+</section>
+<section class="auth-panel">{% block content %}{% endblock %}</section>
+</div>
+<footer class="auth-footer">Private by design · WardrobeOS</footer>
+</main>
+</body></html>
