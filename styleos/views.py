@@ -90,6 +90,7 @@ def command_center(request):
     trips = list(scoped_trips(request.user).order_by("start_date")[:3])
     trip = trips[0] if trips else None
     trip_capsule = capsule_for_trip(items, trip) if trip else []
+    capsule = _capsule(items, 10)
 
     return render(request, "styleos/command_center.html", {
         "pulse": pulse,
@@ -112,6 +113,7 @@ def command_center(request):
         "gaps": gaps,
         "daily": daily,
         "trip_capsule": trip_capsule,
+        "capsule": capsule,
         "trip": trip,
         "recent_outfits": outfits[:6],
         "coach_form": StyleCoachForm(),
