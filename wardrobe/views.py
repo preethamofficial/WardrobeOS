@@ -9,7 +9,8 @@ from ai.colors import normalize_palette
 from ai.matching import recommend
 from config.scoping import get_scoped, scoped_items
 from promptlab.services import lab_stats
-from weather.service import get_weather, summarize\nfrom accounts_app.models import resolve_location
+from weather.service import get_weather, summarize
+from accounts_app.models import resolve_location
 
 from .forms import ItemForm
 from .models import Item
