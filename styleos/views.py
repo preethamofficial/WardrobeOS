@@ -151,7 +151,7 @@ def command_center(request):
     else:
         rotation_balance = 0
 
-    feedback_total = sum(o.feedback_summary["total"] for o in outfits)
+    feedback_total = outfits_qs.filter(feedback_set__isnull=False).count()
     feedback_score = min(100, feedback_total * 20)
     care_score = clean_rate
 
