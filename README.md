@@ -190,6 +190,7 @@ See `.env.example` and `ai/providers/`.
 
 ## Included
 - Advanced responsive dashboard with today's outfit and wardrobe colour DNA
+- **Style Intelligence Command Center** with explainable Style Pulse, next-best actions, wardrobe missions and a 10-piece capsule builder
 - Digital wardrobe with search, category/status filters and pagination
 - Image upload with idempotent enhancement (EXIF rotation fix, guarded
   exposure/contrast normalization, resize) + automatic thumbnails
@@ -202,6 +203,7 @@ See `.env.example` and `ai/providers/`.
 - Weekly planner
 - Analytics
 - Trip foundation
+- Explainable style health signals built entirely from existing wardrobe/outfit history (no extra AI call required)
 - AI provider orchestration architecture
 - Health endpoint (`/health/`), structured logging, hardened settings
 - JSON API (`/api/items/`, `/api/weather/`, `/api/outfits/today/`)
