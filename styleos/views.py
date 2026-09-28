@@ -1,262 +1,151 @@
-"""WardrobeOS Style Intelligence: a fast, explainable layer over existing data.
-
-This app deliberately has no new database tables. It derives its signals from
-the existing wardrobe, outfit, planner and laundry data so the feature is
-instant to deploy and cannot create another source of truth.
-"""
-from __future__ import annotations
-
-from collections import Counter
+"""WardrobeOS Style Intelligence command center."""
 from datetime import date
-from datetime import timedelta
 
-from django.shortcuts import render
-from django.utils import timezone
+from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.http import require_POST
 
-from ai.colors import normalize_palette
+from accounts_app.models import resolve_location
 from ai.matching import recommend
-from config.scoping import scoped_items, scoped_outfits, scoped_plans
+from ai.providers import complete_text
+from config.scoping import scoped_items, scoped_outfits, scoped_plans, scoped_trips
 from weather.service import get_weather, summarize
 
+from .engine import (
+    capsule_for_trip, remix_candidates, seven_day_context,
+    style_genome, wardrobe_gaps, wardrobe_roi,
+)
+from .forms import StyleCoachForm
 
-def _weather():
+
+def _weather(user):
+    place = resolve_location(user)
     try:
-        return summarize(get_weather())
+        data = summarize(get_weather(place["lat"], place["lon"]))
+        data["city"] = place["city"]
+        return data
     except Exception:
-        return {
-            "temp": 25, "kind": None, "label": "Weather unavailable",
-            "emoji": "🌤️", "rainy": False, "hot": False, "cold": False,
-            "precip_prob": None,
-        }
+        return {"temp": None, "kind": None, "label": "Weather offline",
+                "emoji": "🌤️", "city": place["city"]}
 
 
-def _clamp(value):
-    return max(0, min(100, int(round(value))))
-
-
-def _capsule(items, limit=10):
-    """Build a deterministic capsule with category coverage and color variety."""
-    available = [x for x in items if x.status == "clean" and x.category != "accessory"]
-    if not available:
+def _daily(user):
+    place = resolve_location(user)
+    try:
+        raw = get_weather(place["lat"], place["lon"]).get("daily", {})
+        dates = raw.get("time", [])
+        codes = raw.get("weather_code", [])
+        mins = raw.get("temperature_2m_min", [])
+        maxs = raw.get("temperature_2m_max", [])
+        return [{
+            "date": d,
+            "code": codes[i] if i < len(codes) else None,
+            "min": mins[i] if i < len(mins) else None,
+            "max": maxs[i] if i < len(maxs) else None,
+        } for i, d in enumerate(dates[:7])]
+    except Exception:
         return []
-
-    # Prioritise useful pieces without simply returning the most-worn items.
-    category_priority = {
-        "shirt": 8, "tshirt": 7, "pant": 8, "jeans": 8, "shorts": 5,
-        "dress": 9, "skirt": 7, "jacket": 7, "hoodie": 6, "sweater": 6,
-        "shoes": 9, "accessory": 3, "other": 2,
-    }
-    chosen = []
-    seen_categories = set()
-    seen_families = set()
-
-    def score(item):
-        family = (item.color_family or "").lower()
-        category = item.category
-        freshness = 1 if item.last_worn is None else max(
-            0, min(6, (timezone.now() - item.last_worn).days // 14)
-        )
-        diversity = 7 if family and family not in seen_families else 0
-        coverage = 10 if category not in seen_categories else 0
-        return (
-            coverage + diversity + category_priority.get(category, 2)
-            + min(item.wear_count, 6) + freshness
-        )
-
-    remaining = available[:]
-    while remaining and len(chosen) < limit:
-        remaining.sort(key=score, reverse=True)
-        pick = remaining.pop(0)
-        chosen.append(pick)
-        seen_categories.add(pick.category)
-        if pick.color_family:
-            seen_families.add(pick.color_family.lower())
-
-    return chosen
-
-
-def _missions(items, outfits):
-    now = timezone.now()
-    missions = []
-    never = [x for x in items if x.wear_count == 0 and x.status == "clean"]
-    idle = [
-        x for x in items
-        if x.last_worn and (now - x.last_worn).days >= 21 and x.status == "clean"
-    ]
-    laundry = [x for x in items if x.status in ("worn", "laundry")]
-
-    if never:
-        missions.append({
-            "icon": "◈", "title": "Break the unworn streak",
-            "text": f"Wear one of {len(never)} pieces you've never logged.",
-            "action": "/wardrobe/", "action_text": "Find an unworn piece",
-            "tone": "violet",
-        })
-    if idle:
-        missions.append({
-            "icon": "↻", "title": "Resurface a forgotten piece",
-            "text": f"{len(idle)} clean pieces have been idle for 21+ days.",
-            "action": "/outfits/", "action_text": "Build a fresh look",
-            "tone": "amber",
-        })
-    if laundry:
-        missions.append({
-            "icon": "♧", "title": "Reset your rotation",
-            "text": f"{len(laundry)} pieces are waiting in your care queue.",
-            "action": "/laundry/", "action_text": "Open laundry",
-            "tone": "blue",
-        })
-    if outfits:
-        missions.append({
-            "icon": "✦", "title": "Remix a saved favourite",
-            "text": "Use a proven outfit as a starting point, then change one piece.",
-            "action": "/outfits/", "action_text": "Open AI Stylist",
-            "tone": "green",
-        })
-    return missions[:4]
 
 
 def command_center(request):
     items_qs = scoped_items(request.user)
     outfits_qs = scoped_outfits(request.user)
     plans_qs = scoped_plans(request.user)
-
     items = list(items_qs)
-    outfits = list(outfits_qs)
-    now = timezone.now()
+    outfits = list(outfits_qs[:40])
+    wx = _weather(request.user)
 
-    total = len(items)
-    worn = [x for x in items if x.wear_count > 0]
+    worn = [x for x in items if x.wear_count]
     clean = [x for x in items if x.status == "clean"]
-    laundry = [x for x in items if x.status in ("worn", "laundry")]
-    never = [x for x in items if x.wear_count == 0]
-    idle = [
-        x for x in items
-        if x.last_worn and (now - x.last_worn).days >= 21 and x.status == "clean"
-    ]
-
-    utilization = (len(worn) / total * 100) if total else 0
-    clean_rate = (len(clean) / total * 100) if total else 0
-
-    categories = Counter(x.category for x in items)
-    category_coverage = min(100, len(categories) * 12)
-    families = Counter((x.color_family or "").lower() for x in items if x.color_family)
-    color_diversity = min(100, len(families) * 18)
-
-    wear_counts = [x.wear_count for x in worn]
-    if wear_counts:
-        avg_wear = sum(wear_counts) / len(wear_counts)
-        rotation_balance = 100 if len(wear_counts) == 1 else max(
-            0, 100 - ((max(wear_counts) - min(wear_counts)) / max(avg_wear, 1) * 12)
-        )
-    else:
-        rotation_balance = 0
-
-    feedback_total = outfits_qs.filter(feedback_set__isnull=False).count()
-    feedback_score = min(100, feedback_total * 20)
-    care_score = clean_rate
-
-    pulse = _clamp(
-        utilization * 0.28
-        + rotation_balance * 0.22
-        + category_coverage * 0.16
-        + color_diversity * 0.14
-        + care_score * 0.12
-        + feedback_score * 0.08
+    categories = {x.category for x in items}
+    families = {x.color_family for x in items if x.color_family}
+    pulse = round(
+        (len(worn) / (len(items) or 1)) * 30
+        + (len(clean) / (len(items) or 1)) * 25
+        + min(25, len(categories) * 2.5)
+        + min(20, len(families) * 3)
     )
+    pulse = max(0, min(100, pulse))
 
-    if pulse >= 80:
-        pulse_label = "In rhythm"
-        pulse_text = "Your wardrobe is being used deliberately and has enough signal for strong recommendations."
-    elif pulse >= 60:
-        pulse_label = "Finding its rhythm"
-        pulse_text = "A few small rotation and care changes can make the wardrobe more useful."
-    elif pulse >= 40:
-        pulse_label = "Needs a reset"
-        pulse_text = "There is useful clothing data here, but several pieces are being left behind."
-    else:
-        pulse_label = "Just getting started"
-        pulse_text = "Add a few pieces and log some wears to unlock better intelligence."
+    genome = style_genome(items, outfits)
+    roi = wardrobe_roi(items)
+    gaps = wardrobe_gaps(items)
+    ootd = (recommend(items_qs, "casual", wx.get("temp") or 25, wx.get("kind")) or [None])[0]
 
-    wx = _weather()
-    ootd = (recommend(items_qs, "casual", wx.get("temp", 25), wx.get("kind")) or [None])[0]
-
-    upcoming = []
-    for plan in plans_qs.filter(date__gte=timezone.localdate()).order_by("date")[:4]:
-        upcoming.append({
-            "date": plan.date,
-            "occasion": plan.occasion,
-            "location": plan.location,
-        })
-
-    capsule = _capsule(items, 10)
-    capsule_families = Counter((x.color_family or "neutral").lower() for x in capsule)
-
-    top_colors = Counter()
-    for item in items:
-        for entry in normalize_palette(item.palette)[:2]:
-            top_colors[entry["name"]] += 1
-
-    next_action = None
-    if not items:
-        next_action = {
-            "title": "Build your first wardrobe signal",
-            "text": "Add 5–8 everyday pieces. The engine can then start learning your palette, rotation and outfit compatibility.",
-            "href": "/wardrobe/add/",
-            "label": "Add your first piece",
-        }
-    elif never:
-        next_action = {
-            "title": "Give an ignored piece a chance",
-            "text": f"You have {len(never)} clean pieces with zero logged wears. One real-world wear improves future rotation decisions.",
-            "href": "/wardrobe/",
-            "label": "Explore unworn pieces",
-        }
-    elif laundry:
-        next_action = {
-            "title": "Clear the care bottleneck",
-            "text": f"{len(laundry)} pieces are outside the clean rotation. A quick laundry reset expands today's usable wardrobe.",
-            "href": "/laundry/",
-            "label": "Reset laundry",
-        }
-    elif idle:
-        next_action = {
-            "title": "Remix something you forgot",
-            "text": f"{len(idle)} pieces have been quiet for at least three weeks. Let the stylist build around one.",
-            "href": "/outfits/",
-            "label": "Find a remix",
-        }
-    else:
-        next_action = {
-            "title": "Plan the next seven days",
-            "text": "Your wardrobe is healthy enough to move from reactive outfit picking to intentional planning.",
-            "href": "/planner/",
-            "label": "Open weekly planner",
-        }
+    plans = list(
+        plans_qs.filter(date__gte=date.today()).order_by("date")[:7]
+    )
+    daily = seven_day_context(plans, _daily(request.user))
+    trips = list(scoped_trips(request.user).order_by("start_date")[:3])
+    trip = trips[0] if trips else None
+    trip_capsule = capsule_for_trip(items, trip) if trip else []
 
     return render(request, "styleos/command_center.html", {
         "pulse": pulse,
-        "pulse_label": pulse_label,
-        "pulse_text": pulse_text,
+        "pulse_label": "In rhythm" if pulse >= 75 else "Finding its rhythm" if pulse >= 50 else "Needs attention",
+        "pulse_text": "A combined signal from use, care, category coverage and palette diversity.",
         "pulse_metrics": [
-            ("Utilization", round(utilization), "How much of your closet has been worn"),
-            ("Rotation", round(rotation_balance), "How evenly wear is distributed"),
-            ("Coverage", round(category_coverage), "Breadth across clothing categories"),
-            ("Palette", round(color_diversity), "Variety in your detected color families"),
-            ("Care", round(care_score), "Clean pieces ready to use"),
-            ("Learning", round(feedback_score), "Signal from outfit feedback"),
+            ("Utilization", round(len(worn) / (len(items) or 1) * 100), "Pieces with real wear history"),
+            ("Care", round(len(clean) / (len(items) or 1) * 100), "Ready-to-wear inventory"),
+            ("Coverage", min(100, len(categories) * 8), "Category breadth"),
+            ("Palette", min(100, len(families) * 15), "Colour-family diversity"),
         ],
-        "items_count": total,
+        "items_count": len(items),
         "worn_count": len(worn),
-        "never_count": len(never),
-        "idle_count": len(idle),
-        "laundry_count": len(laundry),
+        "never_count": len([x for x in items if not x.wear_count]),
+        "laundry_count": len([x for x in items if x.status in ("worn", "laundry")]),
         "ootd": ootd,
         "weather": wx,
-        "capsule": capsule,
-        "capsule_families": capsule_families.items(),
-        "missions": _missions(items, outfits),
-        "next_action": next_action,
-        "upcoming": upcoming,
-        "top_colors": top_colors.most_common(6),
+        "genome": genome,
+        "roi": roi,
+        "gaps": gaps,
+        "daily": daily,
+        "trip_capsule": trip_capsule,
+        "trip": trip,
+        "recent_outfits": outfits[:6],
+        "coach_form": StyleCoachForm(),
+        "coach_answer": request.session.pop("style_coach_answer", ""),
+        "remix_results": request.session.pop("style_remix", []),
     })
+
+
+@require_POST
+def style_coach(request):
+    form = StyleCoachForm(request.POST)
+    if not form.is_valid():
+        return redirect("style_command_center")
+    items = list(scoped_items(request.user))
+    outfits = list(scoped_outfits(request.user)[:20])
+    genome = style_genome(items, outfits)
+    facts = [{
+        "name": x.name, "category": x.category, "color": x.color,
+        "formality": x.formality, "wears": x.wear_count, "status": x.status,
+    } for x in items[:80]]
+    prompt = (
+        "You are the WardrobeOS personal style coach. Answer using ONLY the "
+        "supplied wardrobe facts. Do not invent clothing. If information is "
+        "missing, say so. Give practical, concise advice. "
+        f"STYLE GENOME: {genome}. WARDROBE: {facts}. "
+        f"USER QUESTION: {form.cleaned_data['question']}"
+    )
+    result = complete_text(
+        prompt,
+        system="Be an honest wardrobe coach. Prefer concrete combinations and explain why.",
+        max_tokens=700,
+        temperature=0.4,
+    )
+    request.session["style_coach_answer"] = (
+        result.text if result.ok
+        else "Coach unavailable right now. Your deterministic Style Intelligence panels remain available."
+    )
+    return redirect("style_command_center")
+
+
+@require_POST
+def remix(request, pk):
+    outfit = get_object_or_404(scoped_outfits(request.user), pk=pk)
+    candidates = remix_candidates(scoped_items(request.user), outfit)
+    request.session["style_remix"] = [
+        {"replace": x["replace"].name, "with": x["with"].name, "reason": x["reason"]}
+        for x in candidates
+    ]
+    return redirect("style_command_center")
