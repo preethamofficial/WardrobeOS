@@ -63,6 +63,15 @@
 </section>
 {% endif %}
 
+<section class="panel">
+  <div class="section-head compact"><div><span class="eyebrow">REMIX LAB</span><h3>Refresh an outfit without starting over</h3></div></div>
+  <div class="remix-grid">{% for outfit in recent_outfits %}
+    <div class="remix-card"><div><b>{{ outfit.name }}</b><span>{{ outfit.item_count }} pieces · {{ outfit.score|floatformat:0 }} score</span></div>
+      <form method="post" action="{% url 'style_remix' outfit.pk %}">{% csrf_token %}<button class="btn btn-ghost" type="submit">Remix →</button></form>
+    </div>
+  {% empty %}<div class="style-empty">Save an outfit first and the Remix Lab will find same-category swaps.</div>{% endfor %}</div>
+</section>
+
 {% if remix_results %}
 <section class="panel">
   <div class="section-head compact"><div><span class="eyebrow">OUTFIT REMIX</span><h3>Fresh combinations from pieces you already own</h3></div></div>
