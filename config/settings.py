@@ -42,7 +42,7 @@ INSTALLED_APPS=[
 "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes","django.contrib.sessions",
 "django.contrib.messages","django.contrib.staticfiles","django.contrib.sites",
 "accounts_app","wardrobe","outfits","planner","laundry",
-"analytics_app","trips","promptlab",
+"analytics_app","trips","promptlab","styleos",
 "allauth","allauth.account","allauth.socialaccount"]
 # Google Sign-In activates automatically when OAuth keys are configured (free).
 _GOOGLE_CLIENT_ID=os.getenv("GOOGLE_OAUTH_CLIENT_ID","").strip()
