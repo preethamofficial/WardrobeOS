@@ -7,6 +7,7 @@ instant to deploy and cannot create another source of truth.
 from __future__ import annotations
 
 from collections import Counter
+from datetime import date
 from datetime import timedelta
 
 from django.shortcuts import render
