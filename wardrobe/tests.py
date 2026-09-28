@@ -306,9 +306,9 @@ class MultiUserTests(TestCase):
     def test_signup_then_email_login(self):
         from django.contrib.auth.models import User
         c = Client()
-        c.post("/accounts/signup/", {"username": "carol", "email": "carol@example.com",
+        c.post("/accounts/signup/", {"email": "carol@example.com",
                                      "password1": "sunny-day-42", "password2": "sunny-day-42"})
-        self.assertTrue(User.objects.filter(username="carol").exists())
+        self.assertTrue(User.objects.filter(email="carol@example.com").exists())
         c2 = Client()
         c2.post("/accounts/login/", {"login": "carol@example.com", "password": "sunny-day-42"})
         self.assertIn("_auth_user_id", c2.session)
