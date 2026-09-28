@@ -1,3 +1,15 @@
+
+def _capsule(items, limit=10):
+    """Backward-compatible quick capsule helper for existing tests/integrations."""
+    available=[x for x in items if x.status=="clean" and x.category!="accessory"]
+    chosen=[]; categories=set()
+    for item in sorted(available, key=lambda x: (-x.wear_count, x.name)):
+        if len(chosen)>=limit:
+            break
+        if item.category not in categories or len(chosen)>=max(1,limit-3):
+            chosen.append(item)
+            categories.add(item.category)
+    return chosen
 """WardrobeOS Style Intelligence command center."""
 from datetime import date
 
