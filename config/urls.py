@@ -14,6 +14,9 @@ path("api/health/",api.health),path("health/",api.health),
 path("media/<path:path>",media_views.serve_media,name="serve_media"),
 path("wardrobe/",include("wardrobe.urls")),path("outfits/",include("outfits.urls")),
 path("accounts/verification-sent/",account_views.verification_sent,name="account_email_verification_sent"),
+# Override allauth's anonymous verification landing view with our actionable
+# page. The keyed /confirm-email/<key>/ route below still belongs to allauth.
+path("accounts/confirm-email/",account_views.verification_sent,name="account_email_verification_sent_landing"),
 path("accounts/resend-verification/",account_views.resend_verification,name="resend_verification"),
 path("accounts/",include("allauth.urls")),
 path("profile/",include("accounts_app.urls")),
