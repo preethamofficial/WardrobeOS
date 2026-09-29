@@ -7,6 +7,7 @@ response: pass `?page=2&page_size=50`. Envelope keys (`count`, `page`,
 from django.core.paginator import EmptyPage, Paginator
 from django.db import connection
 from django.http import JsonResponse
+from django.conf import settings
 
 from ai.matching import recommend
 from config.scoping import scoped_items
@@ -88,4 +89,5 @@ def health(request):
     except Exception as exc:
         db = f"error: {exc}"
     return JsonResponse({"status": "ok" if db == "ok" else "degraded",
-                         "database": db, "app": "ai-smart-wardrobe-os"})
+                         "database": db, "app": "ai-smart-wardrobe-os",
+                         "email_delivery": "smtp" if getattr(settings, "EMAIL_HOST", "") else "not_configured"})
