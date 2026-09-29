@@ -43,4 +43,12 @@ def add_plan(request):
         date=plan_date, owner=owner, defaults={"occasion": occasion, "location": location, "notes": notes})
     messages.success(request, f"Plan for {plan_date.strftime('%b %d')} saved.")
     return redirect("weekly")
-\n\n@require_POST\ndef delete_plan(request, pk):\n    plan = scoped_plans(request.user).filter(pk=pk).first()\n    if plan:\n        plan.delete()\n        messages.success(request, "Planner entry deleted.")\n    return redirect("weekly")\n
+
+
+@require_POST
+def delete_plan(request, pk):
+    plan = scoped_plans(request.user).filter(pk=pk).first()
+    if plan:
+        plan.delete()
+        messages.success(request, "Planner entry deleted.")
+    return redirect("weekly")
