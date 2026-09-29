@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}{{ item.name }} · WardrobeOS{% endblock %}
+{% block heading %}{{ item.name }}{% endblock %}
+{% block content %}
+<div class="hero-card compact">
+  <div><span class="badge-soft">{{ item.get_status_display }}</span><h2>{{ item.get_category_display }}</h2>
+  <p>{{ item.get_formality_display }}{% if item.brand %} · {{ item.brand }}{% endif %}{% if item.size %} · Size {{ item.size }}{% endif %}</p></div>
+  <div class="hero-icon">{% if item.display_image %}<img src="{{ item.display_image }}" alt="{{ item.name }}" style="max-width:180px;border-radius:16px">{% else %}👕{% endif %}</div>
+</div>
+<div class="trip-actions">
+  <a class="btn btn-dark" href="{% url 'item_edit' item.pk %}">✎ Edit</a>
+  <form method="post" action="{% url 'item_duplicate' item.pk %}" class="inline-form">{% csrf_token %}<button class="btn btn-ghost">Duplicate</button></form>
+  <form method="post" action="{% url 'item_status' item.pk 'worn' %}" class="inline-form">{% csrf_token %}<button class="btn btn-ghost">Mark worn</button></form>
+  <form method="post" action="{% url 'item_status' item.pk 'laundry' %}" class="inline-form">{% csrf_token %}<button class="btn btn-ghost">Mark washed/laundry</button></form>
+  <a class="btn btn-ghost danger" href="{% url 'item_delete' item.pk %}">Delete</a>
+</div>
+<div class="form-card">
+  <p><b>Wears:</b> {{ item.wear_count }}</p>
+  <p><b>Last worn:</b> {% if item.last_worn %}{{ item.last_worn|date:"M j, Y" }}{% else %}Never worn{% endif %}</p>
+  <p><b>Purchase price:</b> {{ item.purchase_price }}</p>
+  {% if item.purchase_date %}<p><b>Purchased:</b> {{ item.purchase_date|date:"M j, Y" }}</p>{% endif %}
+  {% if item.care_instructions %}<p><b>Care:</b> {{ item.care_instructions|linebreaksbr }}</p>{% endif %}
+  {% if item.tags %}<p><b>Tags:</b> {{ item.tags }}</p>{% endif %}
+  {% if item.notes %}<hr><p>{{ item.notes|linebreaksbr }}</p>{% endif %}
+</div>
+{% endblock %}
