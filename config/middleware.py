@@ -37,4 +37,7 @@ class LoginRequiredMiddleware:
                 # `next` is URL-encoded so a crafted path cannot smuggle in a
                 # scheme or host, and only same-site relative paths are returned.
                 return redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
-        return self.get_response(request)
+        response = self.get_response(request)
+        response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        response["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        return response
