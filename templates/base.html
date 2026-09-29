@@ -39,7 +39,7 @@
   <nav class="nav-group nav-bottom">
     {% if user.is_staff %}<a href="/admin/">⚙ <span>Admin</span></a>{% endif %}
     {% if user.is_authenticated %}
-      <form method="post" action="{% url 'account_logout' %}" class="logout-form">{% csrf_token %}<button type="submit">⎋ <span>Sign out ({{ user.username }})</span></button></form>
+      <form method="post" action="{% url 'account_logout' %}" class="logout-form">{% csrf_token %}<button type="submit">⎋ <span>Sign out ({{ user.profile.display_name|default:user.email }})</span></button></form>
     {% else %}
       <a href="{% url 'account_login' %}">⎋ <span>Sign in</span></a>
       <a href="{% url 'account_signup' %}">✚ <span>Create account</span></a>
@@ -51,7 +51,7 @@
     <div><span class="eyebrow">{% block eyebrow %}PERSONAL STYLE OS{% endblock %}</span><h1>{% block heading %}Good day 👋{% endblock %}</h1></div>
     <div class="topbar-right">
       {% if user.is_authenticated %}
-        <span class="user-chip" title="Signed in">👤 {{ user.username }}</span>
+        <span class="user-chip" title="Signed in">👤 {{ user.profile.display_name|default:user.email }}</span>
         <form method="post" action="{% url 'account_logout' %}" class="inline-form">{% csrf_token %}<button class="theme-toggle" type="submit" aria-label="Sign out" title="Sign out">⎋</button></form>
       {% else %}
         <a class="user-chip" href="{% url 'account_login' %}" title="Sign in">Sign in</a>
