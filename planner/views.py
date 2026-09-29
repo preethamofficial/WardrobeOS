@@ -18,7 +18,7 @@ def weekly(request):
     for i in range(7):
         d=start_date+timedelta(days=i)
         days.append({"date":d,"plan":scoped_plans(request.user).filter(date=d).first()})
-    return render(request,"planner/weekly.html",{"days":days, "start_date": start_date})
+    return render(request,"planner/weekly.html",{"days":days, "start_date": start_date, "prev_start": start_date-timedelta(days=7), "next_start": start_date+timedelta(days=7)})
 
 
 @require_POST
