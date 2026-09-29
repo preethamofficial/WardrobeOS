@@ -1,0 +1,24 @@
+{% extends "account/auth_base.html" %}
+{% load i18n %}
+{% block title %}Verify your email · WardrobeOS{% endblock %}
+{% block content %}
+<div class="auth-form-card">
+  <span class="auth-kicker">ONE LAST STEP</span>
+  <h2>Verify your email</h2>
+  <p class="text-muted">Your account was created. We sent a verification link to your email address. You must verify it before signing in.</p>
+  <div class="auth-form-error" role="status">
+    <b>Not seeing it?</b><br>
+    Check your spam/junk folder. If it still has not arrived after a few minutes, request a fresh email below.
+  </div>
+  <form method="post" action="{% url 'resend_verification' %}" class="form-fields">
+    {% csrf_token %}
+    <div class="auth-field">
+      <label for="verification-email">Email address</label>
+      <input id="verification-email" name="email" type="email" required autocomplete="email"
+             value="{{ request.GET.email|default:'' }}" placeholder="you@example.com">
+    </div>
+    <button class="btn btn-dark" type="submit">Resend verification email</button>
+  </form>
+  <p class="text-muted auth-alt">Already verified? <a href="{% url 'account_login' %}">Sign in</a></p>
+</div>
+{% endblock %}
