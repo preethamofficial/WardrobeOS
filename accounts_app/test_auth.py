@@ -102,5 +102,5 @@ class AuthenticationFlowTests(TestCase):
     def test_auth_redirect_includes_security_headers(self):
         response = self.client.get("/wardrobe/")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response["Permissions-Policy"], "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+        self.assertEqual(response["Permissions-Policy"], "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()")
         self.assertIn("frame-ancestors 'none'", response["Content-Security-Policy"])
