@@ -29,6 +29,10 @@ class Profile(models.Model):
     latitude = models.FloatField(blank=True, null=True)
     longitude = models.FloatField(blank=True, null=True)
     temperature_unit = models.CharField(max_length=1, choices=TEMP_UNITS, default="c")
+    display_name = models.CharField(max_length=120, blank=True)
+    timezone = models.CharField(max_length=64, default="Asia/Kolkata")
+    currency = models.CharField(max_length=3, default="INR")
+    theme = models.CharField(max_length=10, choices=[("light", "Light"), ("dark", "Dark"), ("system", "System")], default="system")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
