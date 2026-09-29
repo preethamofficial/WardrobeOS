@@ -96,4 +96,4 @@ def resend_verification(request):
         "If that email belongs to a WardrobeOS account, a fresh verification email has been sent. "
         "Check your inbox and spam folder."
     )
-    return redirect("verification_sent")
+    return redirect("account_email_verification_sent_landing")
