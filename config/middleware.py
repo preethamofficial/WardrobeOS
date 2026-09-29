@@ -42,7 +42,7 @@ class LoginRequiredMiddleware:
 
     @staticmethod
     def _security_response(response):
-        response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        response["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()"
         response["Content-Security-Policy"] = (
             "default-src 'self'; img-src 'self' data: blob:; "
             "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
