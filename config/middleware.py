@@ -21,9 +21,29 @@ from django.shortcuts import redirect
 LOGIN_URL = "/accounts/login/"
 SIGNUP_URL = "/accounts/signup/"
 
-ALLOWLIST_PREFIXES = ("/admin/login/", "/accounts/",
-                      "/accounts/google/", "/accounts/3rdparty/",
-                      "/static/", "/health/", "/api/health/")
+ALLOWLIST_PREFIXES = (
+    "/admin/login/",
+    "/accounts/",
+    "/accounts/google/",
+    "/accounts/3rdparty/",
+    "/static/",
+    "/health/",
+    "/api/health/",
+)
+
+# Keep account recovery and email verification explicitly public. The broad
+# /accounts/ rule is intentional, but these paths are listed separately so a
+# future tightening of account routes cannot reintroduce a recovery loop.
+PUBLIC_AUTH_PATHS = {
+    "/accounts/login/",
+    "/accounts/signup/",
+    "/accounts/confirm-email/",
+    "/accounts/password/reset/",
+    "/accounts/password/reset/done/",
+    "/accounts/password/reset/key/done/",
+    "/accounts/verification-sent/",
+    "/accounts/resend-verification/",
+}
 
 
 class LoginRequiredMiddleware:
@@ -34,7 +54,7 @@ class LoginRequiredMiddleware:
         # Set security headers even when this middleware returns an early auth redirect.
         if getattr(settings, "LOGIN_REQUIRED", False) and not request.user.is_authenticated:
             path = request.path
-            if not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
+            if path not in PUBLIC_AUTH_PATHS and not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
                 return self._security_response(
                     redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
                 )
