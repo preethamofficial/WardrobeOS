@@ -14,8 +14,8 @@
 <div class="insight-row">
   <section class="ootd-card">
     <span class="eyebrow">COST PER WEAR</span>
-    <h3>Where each rupee/rupee of spend lands</h3>
-    <p class="text-muted">Cost per wear = price ÷ times worn. Low numbers mean a purchase earned its keep; high numbers mean money sitting in the closet.</p>
+    <h3>Where wardrobe spending lands</h3>
+    <p class="text-muted">Cost per wear = recorded price ÷ times worn. Lower values indicate more wears relative to recorded price; this is a personal utilisation metric, not a financial recommendation.</p>
     {% if best_cpw %}
       <h4 class="section-label">Best value</h4>
       {% for row in best_cpw %}
@@ -39,7 +39,7 @@
   </section>
 
   <aside class="dna-card">
-    <span class="eyebrow">SUSTAINABILITY SCORE</span>
+    <span class="eyebrow">UTILISATION SCORE</span>
     <h3>{{ sustainability }}/100</h3>
     <div class="score-ring" style="--pct:{{ sustainability }}"><b>{{ sustainability }}</b><small>/100</small></div>
     <div class="metric-row"><span>Utilisation 50%</span><div class="bar"><i style="width:{{ utilization }}%"></i></div><b>{{ utilization }}%</b></div>
