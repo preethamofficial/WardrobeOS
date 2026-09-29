@@ -309,6 +309,10 @@ class MultiUserTests(TestCase):
         c.post("/accounts/signup/", {"email": "carol@example.com",
                                      "password1": "sunny-day-42", "password2": "sunny-day-42"})
         self.assertTrue(User.objects.filter(email="carol@example.com").exists())
+        from allauth.account.models import EmailAddress
+        address = EmailAddress.objects.get(email="carol@example.com")
+        address.verified = True
+        address.save(update_fields=["verified"])
         c2 = Client()
         c2.post("/accounts/login/", {"login": "carol@example.com", "password": "sunny-day-42"})
         self.assertIn("_auth_user_id", c2.session)
