@@ -1,21 +1,33 @@
 {% extends "base.html" %}{% block heading %}Weekly planner{% endblock %}{% block content %}
-<div class="section-head"><div><span class="eyebrow">NEXT 7 DAYS</span><h3>Your rotation plan</h3></div></div>
+<div class="section-head"><div><span class="eyebrow">7 DAY VIEW</span><h3>{{ start_date|date:"M j, Y" }} onward</h3></div>
+<div class="trip-actions">
+<a class="btn btn-ghost" href="?week={{ start_date|date:'Y-m-d'|add:'-7 days' }}">← Previous</a>
+<a class="btn btn-dark" href="/planner/">Current week</a>
+<a class="btn btn-ghost" href="?week={{ start_date|date:'Y-m-d'|add:'7 days' }}">Next →</a>
+</div></div>
 <div class="week-grid">{% for day in days %}
 <div class="day-card">
-  <small>{{day.date|date:"D"}}</small><h3>{{day.date|date:"d"}}</h3>
-  {% if day.plan %}<span class="badge-soft">{{day.plan.occasion}}</span><p>{{day.plan.location}}</p>
-  <form method="post" action="/planner/add/">{% csrf_token %}
-    <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
-    <button class="btn btn-ghost" style="padding:5px 10px;font-size:11px" data-confirm="Clear the plan for {{ day.date|date:'M d' }}?">✕ Clear</button>
-  </form>
+  <small>{{day.date|date:"D"}}</small><h3>{{day.date|date:"d M Y"}}</h3>
+  {% if day.plan %}
+    <span class="badge-soft">{{day.plan.occasion}}</span><p>{{day.plan.location }}</p>
+    {% if day.plan.notes %}<p class="text-muted">{{ day.plan.notes }}</p>{% endif %}
+    <form method="post" action="/planner/add/" class="lab-form">{% csrf_token %}
+      <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+      <select name="occasion" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+        <option value="casual" {% if day.plan.occasion == "casual" %}selected{% endif %}>Casual</option><option value="office" {% if day.plan.occasion == "office" %}selected{% endif %}>Office</option><option value="party" {% if day.plan.occasion == "party" %}selected{% endif %}>Party</option><option value="sport" {% if day.plan.occasion == "sport" %}selected{% endif %}>Sport</option>
+      </select>
+      <input name="location" value="{{ day.plan.location }}" placeholder="Where?" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+      <input name="notes" value="{{ day.plan.notes }}" placeholder="Notes" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+      <button class="btn btn-dark" style="padding:6px 10px;font-size:12px">Save changes</button>
+    </form>
+    <form method="post" action="/planner/{{ day.plan.pk }}/delete/" class="inline-form" style="margin-top:6px">{% csrf_token %}<button class="btn btn-ghost danger">Delete</button></form>
   {% else %}<p class="muted">No plan yet</p>
-  <form method="post" action="/planner/add/" class="lab-form">{% csrf_token %}
-    <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
-    <select name="occasion" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
-      <option value="casual">Casual</option><option value="office">Office</option>
-      <option value="party">Party</option><option value="sport">Sport</option></select>
-    <input name="location" placeholder="Where?" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
-    <button class="btn btn-dark" style="padding:6px 10px;font-size:12px">＋ Plan this day</button>
-  </form>
+    <form method="post" action="/planner/add/" class="lab-form">{% csrf_token %}
+      <input type="hidden" name="date" value="{{ day.date|date:'Y-m-d' }}">
+      <select name="occasion" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px"><option value="casual">Casual</option><option value="office">Office</option><option value="party">Party</option><option value="sport">Sport</option></select>
+      <input name="location" placeholder="Where?" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+      <input name="notes" placeholder="Notes" style="width:100%;padding:7px;margin-bottom:6px;border:1px solid var(--line);border-radius:8px">
+      <button class="btn btn-dark" style="padding:6px 10px;font-size:12px">＋ Plan this day</button>
+    </form>
   {% endif %}
 </div>{% endfor %}</div>{% endblock %}
