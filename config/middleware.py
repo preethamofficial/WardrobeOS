@@ -31,13 +31,22 @@ class LoginRequiredMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
+        # Set security headers even when this middleware returns an early auth redirect.
         if getattr(settings, "LOGIN_REQUIRED", False) and not request.user.is_authenticated:
             path = request.path
             if not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
-                # `next` is URL-encoded so a crafted path cannot smuggle in a
-                # scheme or host, and only same-site relative paths are returned.
-                return redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
-        response = self.get_response(request)
+                return self._security_response(
+                    redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
+                )
+        return self._security_response(self.get_response(request))
+
+    @staticmethod
+    def _security_response(response):
         response["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
-        response["Content-Security-Policy"] = "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+        response["Content-Security-Policy"] = (
+            "default-src 'self'; img-src 'self' data: blob:; "
+            "style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; "
+            "font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; "
+            "base-uri 'self'; form-action 'self'"
+        )
         return response
