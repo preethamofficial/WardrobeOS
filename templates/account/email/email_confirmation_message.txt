@@ -1,0 +1,13 @@
+Hello {{ user_display }},
+
+Thanks for creating your WardrobeOS account.
+
+Please verify this email address by opening the secure link below:
+
+{{ activate_url }}
+
+This link expires in {{ expiration_days }} days.
+
+If you did not create this account, you can ignore this email.
+
+WardrobeOS — Personal Style Intelligence
