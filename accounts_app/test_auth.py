@@ -85,6 +85,11 @@ class AuthenticationFlowTests(TestCase):
         self.assertContains(response, "your email is not verified yet")
         self.assertContains(response, "Resend verification email")
 
+    def test_password_reset_page_is_public(self):
+        response = self.client.get(reverse("account_reset_password"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reset your password")
+
     def test_resend_verification_is_public_and_sends_mail(self):
         response = self.client.post(
             reverse("resend_verification"),
