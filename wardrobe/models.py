@@ -14,7 +14,14 @@ class Item(models.Model):
     owner=models.ForeignKey(settings.AUTH_USER_MODEL,verbose_name="Owner",on_delete=models.CASCADE,
                             related_name="items",blank=True,null=True,
                             help_text="Signed-in owner. NULL = the shared local wardrobe (anonymous/local-first mode).")
-    name=models.CharField(max_length=120); category=models.CharField(max_length=30,choices=CATEGORIES,default="other")
+    name=models.CharField(max_length=120)
+    brand=models.CharField(max_length=120,blank=True)
+    size=models.CharField(max_length=40,blank=True)
+    purchase_date=models.DateField(blank=True,null=True)
+    care_instructions=models.TextField(blank=True)
+    favorite=models.BooleanField(default=False)
+    tags=models.CharField(max_length=255,blank=True)
+    category=models.CharField(max_length=30,choices=CATEGORIES,default="other")
     color=models.CharField(max_length=50,blank=True)
     color_family=models.CharField(max_length=30,blank=True,help_text="Colour family (blue, neutral, red...) derived from the photo - drives outfit rules")
     pattern=models.CharField(max_length=50,blank=True)
