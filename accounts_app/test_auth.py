@@ -116,7 +116,8 @@ class AuthenticationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reset your password")
 
-    @override_settings(LOGIN_REQUIRED=True)\n    def test_auth_redirect_includes_security_headers(self):
+    @override_settings(LOGIN_REQUIRED=True)
+    def test_auth_redirect_includes_security_headers(self):
         response = self.client.get("/wardrobe/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Permissions-Policy"], "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()")
