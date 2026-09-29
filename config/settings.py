@@ -84,6 +84,7 @@ ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
 ACCOUNT_CONFIRM_EMAIL_ON_GET=True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS=3
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True
+ACCOUNT_FORMS={"login": "accounts_app.auth_forms.WardrobeLoginForm"}
 SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
 # SMTP (optional). Any provider works; Gmail needs an App Password, and free
 # tiers such as Brevo/Resend/Mailgun SMTP also work. Left unset -> console email.
