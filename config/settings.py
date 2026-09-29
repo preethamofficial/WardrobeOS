@@ -83,6 +83,8 @@ ACCOUNT_PREVENT_ENUMERATION=True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
 ACCOUNT_CONFIRM_EMAIL_ON_GET=True
 ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS=3
+# After anonymous confirmation, land on the public verification-success page.
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL="/accounts/verification-sent/"
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True
 ACCOUNT_FORMS={"login": "accounts_app.auth_forms.WardrobeLoginForm"}
 SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
@@ -94,10 +96,13 @@ EMAIL_HOST_PASSWORD=env("EMAIL_HOST_PASSWORD","").strip()
 EMAIL_PORT=int(env("EMAIL_PORT","587"))
 EMAIL_USE_TLS=flag("EMAIL_USE_TLS",True)
 DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL") or (EMAIL_HOST_USER or "wardrobeos@localhost")
-if EMAIL_HOST:
-    EMAIL_BACKEND="django.core.mail.backends.smtp.EmailBackend"
-else:
-    EMAIL_BACKEND="django.core.mail.backends.console.EmailBackend"
+# Production always uses Django's SMTP backend. DEBUG-only console email keeps
+# local development convenient; Render must provide the SMTP environment vars.
+EMAIL_BACKEND=(
+    "django.core.mail.backends.smtp.EmailBackend"
+    if not DEBUG
+    else "django.core.mail.backends.console.EmailBackend"
+)
 LOGIN_REQUIRED=flag("LOGIN_REQUIRED")
 # HTTPS hardening. Both Render and PythonAnywhere terminate TLS at their proxy and
 # forward X-Forwarded-Proto, so trusting that header is required for
