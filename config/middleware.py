@@ -21,7 +21,7 @@ from django.shortcuts import redirect
 LOGIN_URL = "/accounts/login/"
 SIGNUP_URL = "/accounts/signup/"
 
-ALLOWLIST_PREFIXES = ("/admin/login/", LOGIN_URL, SIGNUP_URL,
+ALLOWLIST_PREFIXES = ("/admin/login/", "/accounts/",
                       "/accounts/google/", "/accounts/3rdparty/",
                       "/static/", "/health/", "/api/health/")
 
