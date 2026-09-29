@@ -104,6 +104,17 @@ class AuthenticationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Verify your email")
 
+
+    def test_allauth_verification_landing_is_public(self):
+        response = self.client.get("/accounts/confirm-email/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Verify your email")
+
+    def test_password_reset_routes_are_public(self):
+        response = self.client.get("/accounts/password/reset/")
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Reset your password")
+
     def test_auth_redirect_includes_security_headers(self):
         response = self.client.get("/wardrobe/")
         self.assertEqual(response.status_code, 302)
