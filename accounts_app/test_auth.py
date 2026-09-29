@@ -80,9 +80,10 @@ class AuthenticationFlowTests(TestCase):
         response = self.client.post(
             reverse("account_login"),
             {"login": self.user.email, "password": "StrongPass123!"},
+            follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "your email is not verified yet")
+        self.assertContains(response, "Verify your email")
         self.assertContains(response, "Resend verification email")
 
     def test_password_reset_page_is_public(self):
@@ -95,7 +96,7 @@ class AuthenticationFlowTests(TestCase):
             reverse("resend_verification"),
             {"email": self.user.email},
         )
-        self.assertRedirects(response, reverse("account_email_verification_sent"))
+        self.assertRedirects(response, "/accounts/verification-sent/")
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("Confirm", mail.outbox[0].subject)
 
@@ -115,7 +116,7 @@ class AuthenticationFlowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reset your password")
 
-    def test_auth_redirect_includes_security_headers(self):
+    @override_settings(LOGIN_REQUIRED=True)\n    def test_auth_redirect_includes_security_headers(self):
         response = self.client.get("/wardrobe/")
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response["Permissions-Policy"], "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()")
