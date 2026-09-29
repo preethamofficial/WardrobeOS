@@ -11,13 +11,13 @@ from .models import Profile
 class ProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
-        fields = ["city", "temperature_unit"]
+        fields = ["display_name", "city", "country", "timezone", "currency", "temperature_unit", "theme"]
         widgets = {
             "city": forms.TextInput(attrs={"placeholder": "e.g. Bengaluru, Berlin, Austin, TX",
                                            "class": "input", "autocomplete": "address-level2"}),
             "temperature_unit": forms.Select(attrs={"class": "input"}),
         }
-        labels = {"city": "Home city", "temperature_unit": "Temperature unit"}
+        labels = {"display_name": "Display name", "city": "Home city", "country": "Country", "timezone": "Time zone", "currency": "Currency", "temperature_unit": "Temperature unit", "theme": "Theme"}
         help_texts = {
             "city": "Used for live weather, outfit suggestions and trip packing lists.",
             "temperature_unit": "How temperatures are shown across the app.",
@@ -26,6 +26,10 @@ class ProfileForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["temperature_unit"].required = False
+        self.fields["country"].required = False
+        self.fields["display_name"].required = False
+        self.fields["timezone"].required = False
+        self.fields["currency"].required = False
         self._geo = None
 
     def clean_city(self):
