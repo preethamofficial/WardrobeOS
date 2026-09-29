@@ -74,3 +74,33 @@ class AuthenticationFlowTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn("Password Reset", mail.outbox[0].subject)
         self.assertIn("password reset", mail.outbox[0].body.lower())
+
+
+    def test_unverified_correct_password_shows_verification_guidance(self):
+        response = self.client.post(
+            reverse("account_login"),
+            {"login": self.user.email, "password": "StrongPass123!"},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "your email is not verified yet")
+        self.assertContains(response, "Resend verification email")
+
+    def test_resend_verification_is_public_and_sends_mail(self):
+        response = self.client.post(
+            reverse("resend_verification"),
+            {"email": self.user.email},
+        )
+        self.assertRedirects(response, reverse("account_email_verification_sent"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertIn("Confirm", mail.outbox[0].subject)
+
+    def test_verification_landing_is_public(self):
+        response = self.client.get(reverse("account_email_verification_sent"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Verify your email")
+
+    def test_auth_redirect_includes_security_headers(self):
+        response = self.client.get("/wardrobe/")
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response["Permissions-Policy"], "camera=(), microphone=(), geolocation=(), payment=(), usb=()")
+        self.assertIn("frame-ancestors 'none'", response["Content-Security-Policy"])
