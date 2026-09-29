@@ -151,6 +151,36 @@ def item_delete(request, pk):
     return render(request, "wardrobe/delete.html", {"item": item})
 
 
+def item_detail(request, pk):
+    item = get_scoped(Item.objects.all(), request.user, pk=pk)
+    return render(request, "wardrobe/detail.html", {"item": item})
+
+
+@require_POST
+def item_duplicate(request, pk):
+    item = get_scoped(Item.objects.all(), request.user, pk=pk)
+    item.pk = None
+    item.name = f"{item.name} (copy)"
+    item.wear_count = 0
+    item.last_worn = None
+    item.status = "clean"
+    item.save()
+    messages.success(request, f"Duplicated {item.name}.")
+    return redirect("wardrobe_list")
+
+
+@require_POST
+def item_status(request, pk, status):
+    item = get_scoped(Item.objects.all(), request.user, pk=pk)
+    if status not in dict(Item.STATUS):
+        messages.error(request, "Invalid wardrobe status.")
+        return redirect("wardrobe_list")
+    item.status = status
+    item.save(update_fields=["status"])
+    messages.success(request, f"{item.name} marked {item.get_status_display().lower()}.")
+    return redirect("wardrobe_list")
+
+
 def item_wear(request, pk):
     item = get_scoped(Item.objects.all(), request.user, pk=pk)
     if request.method == "POST":
