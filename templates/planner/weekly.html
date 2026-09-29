@@ -1,9 +1,9 @@
 {% extends "base.html" %}{% block heading %}Weekly planner{% endblock %}{% block content %}
 <div class="section-head"><div><span class="eyebrow">7 DAY VIEW</span><h3>{{ start_date|date:"M j, Y" }} onward</h3></div>
 <div class="trip-actions">
-<a class="btn btn-ghost" href="?week={{ start_date|date:'Y-m-d'|add:'-7 days' }}">← Previous</a>
+<a class="btn btn-ghost" href="?week={{ prev_start|date:'Y-m-d' }}">← Previous</a>
 <a class="btn btn-dark" href="/planner/">Current week</a>
-<a class="btn btn-ghost" href="?week={{ start_date|date:'Y-m-d'|add:'7 days' }}">Next →</a>
+<a class="btn btn-ghost" href="?week={{ next_start|date:'Y-m-d' }}">Next →</a>
 </div></div>
 <div class="week-grid">{% for day in days %}
 <div class="day-card">
