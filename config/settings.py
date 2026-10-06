@@ -130,10 +130,29 @@ AUTH_PASSWORD_VALIDATORS=[
 {"NAME":"django.contrib.auth.password_validation.NumericPasswordValidator"}]
 LANGUAGE_CODE="en-us"; TIME_ZONE="Asia/Kolkata"; USE_I18N=True; USE_TZ=True
 STATIC_URL="/static/"; STATICFILES_DIRS=[BASE_DIR/"static"]; STATIC_ROOT=BASE_DIR/"staticfiles"
-STORAGES={"default":{"BACKEND":"django.core.files.storage.FileSystemStorage"},
+STORAGES={"default":_DEFAULT_STORAGE,
 "staticfiles":{"BACKEND":"whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG
 else "django.contrib.staticfiles.storage.StaticFilesStorage"}}
 MEDIA_URL="/media/"; MEDIA_ROOT=env("MEDIA_ROOT",str(BASE_DIR/"media"))
+
+USE_OBJECT_STORAGE=flag("USE_OBJECT_STORAGE",False)
+if USE_OBJECT_STORAGE:
+    AWS_ACCESS_KEY_ID=env("AWS_ACCESS_KEY_ID").strip()
+    AWS_SECRET_ACCESS_KEY=env("AWS_SECRET_ACCESS_KEY").strip()
+    AWS_STORAGE_BUCKET_NAME=env("AWS_STORAGE_BUCKET_NAME").strip()
+    AWS_S3_ENDPOINT_URL=env("AWS_S3_ENDPOINT_URL").strip()
+    AWS_S3_REGION_NAME=env("AWS_S3_REGION_NAME","us-east-1").strip()
+    if not all((AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_ENDPOINT_URL)):
+        raise ImproperlyConfigured("USE_OBJECT_STORAGE=True requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL.")
+    AWS_S3_SIGNATURE_VERSION="s3v4"
+    AWS_S3_ADDRESSING_STYLE="path"
+    AWS_DEFAULT_ACL=None
+    AWS_QUERYSTRING_AUTH=True
+    AWS_S3_FILE_OVERWRITE=True
+    AWS_S3_OBJECT_PARAMETERS={"CacheControl":"max-age=86400"}
+    _DEFAULT_STORAGE={"BACKEND":"storages.backends.s3.S3Storage"}
+else:
+    _DEFAULT_STORAGE={"BACKEND":"django.core.files.storage.FileSystemStorage"}
 # Serve uploads through wardrobe.media_views.serve_media (ownership-checked) in
 # every environment; see config/urls.py. MEDIA_ROOT must be a persistent volume
 # in production, otherwise photos vanish on redeploy.
