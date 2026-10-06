@@ -7,6 +7,12 @@ same enhancement + colour analysis steps.
 from __future__ import annotations
 
 import logging
+import os
+import tempfile
+from pathlib import Path
+
+from django.core.files import File
+from django.core.files.storage import default_storage
 
 from ai.colors import extract_palette
 from ai.orchestrator import analyze_clothing
@@ -16,20 +22,43 @@ from .image_enhance import build_thumbnail, enhance_image
 log = logging.getLogger("wardrobe")
 
 
-def _refresh_thumbnail(item):
-    """Regenerate item.thumbnail from the current image (in-memory change)."""
-    from django.core.files.base import ContentFile  # noqa: F401 (clarity)
+def _materialize_image(item):
+    """Copy a stored image to a local temp file for PIL/AI processing."""
+    suffix = Path(item.image.name or "").suffix.lower() or ".jpg"
+    handle = default_storage.open(item.image.name, "rb")
+    temp = tempfile.NamedTemporaryFile(prefix="wardrobe-", suffix=suffix, delete=False)
+    try:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            temp.write(chunk)
+        temp.flush()
+        return temp.name
+    finally:
+        temp.close()
+        try:
+            handle.close()
+        except Exception:
+            pass
 
+
+def _refresh_thumbnail(item, local_path):
+    """Regenerate item.thumbnail from a local processing copy."""
     if item.thumbnail:
         try:
             item.thumbnail.delete(save=False)
         except Exception:
             pass
-        item.thumbnail = None
-    built = build_thumbnail(item.image.path)
+    item.thumbnail = None
+    built = build_thumbnail(local_path)
     if built:
         name, content = built
         item.thumbnail.save(name, content, save=False)
+
+
+def _save_processed_image(item, local_path):
+    """Upload the enhanced local copy through Django storage."""
+    stored_name = item.image.name
+    with open(local_path, "rb") as source:
+        item.image.save(stored_name, File(source), save=False)
 
 
 def analyse_item(item, *, auto_color=True):
@@ -42,10 +71,13 @@ def analyse_item(item, *, auto_color=True):
               "pattern": "", "confidence": 0.0}
     if not item.image:
         return result
+    local_path = None
     try:
-        enhance_image(item.image.path)
-        _refresh_thumbnail(item)
-        analysis = analyze_clothing(item.image.path)
+        local_path = _materialize_image(item)
+        enhance_image(local_path)
+        _save_processed_image(item, local_path)
+        _refresh_thumbnail(item, local_path)
+        analysis = analyze_clothing(local_path)
         palette = analysis.get("palette") or extract_palette(item.image.path)
         item.palette = palette
         if palette:
@@ -69,4 +101,10 @@ def analyse_item(item, *, auto_color=True):
                       confidence=analysis.get("confidence", 0))
     except Exception:
         log.exception("Colour analysis failed for item %s", item.pk)
+    finally:
+        if local_path:
+            try:
+                os.unlink(local_path)
+            except OSError:
+                pass
     return result
