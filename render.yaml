@@ -56,7 +56,7 @@ services:
       - key: LOGIN_REQUIRED
         value: "True"
       - key: ACCOUNT_EMAIL_VERIFICATION
-        value: "optional"
+        value: "mandatory"
       # Durable production database and object storage. Set these in Render.
       - key: DATABASE_URL
         sync: false
