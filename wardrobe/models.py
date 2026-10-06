@@ -1,6 +1,6 @@
 from django.conf import settings
 from django.db import models
-from django.db.models.signals import post_delete, pre_save
+from django.db.models.signals import post_delete
 from django.dispatch import receiver
 from django.utils import timezone
 
@@ -83,19 +83,6 @@ def _release_replaced(old_file, new_file, *, label: str) -> None:
     new_name = getattr(new_file, "name", "") or ""
     if old_name and old_name != new_name:
         _delete_stored_file(old_file, label=label)
-
-
-@receiver(pre_save, sender=Item)
-def item_pre_save_release_replaced_files(sender, instance, **kwargs):
-    """Delete the superseded photo/thumbnail so edits don't leak disk space."""
-    if not instance.pk:
-        return
-    try:
-        previous = sender.objects.get(pk=instance.pk)
-    except sender.DoesNotExist:
-        return
-    _release_replaced(previous.image, instance.image, label="image")
-    _release_replaced(previous.thumbnail, instance.thumbnail, label="thumbnail")
 
 
 @receiver(post_delete, sender=Item)
