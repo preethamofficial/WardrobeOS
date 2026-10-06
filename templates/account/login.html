@@ -3,26 +3,30 @@
 {% block title %}Sign in · WardrobeOS{% endblock %}
 {% block content %}
 <div class="auth-form-card">
-<span class="auth-kicker">WELCOME BACK</span>
-<h2>Sign in to your wardrobe</h2>
-<p class="text-muted">Use the email address and password you registered with to access your private wardrobe, outfits, plans and style intelligence.</p>
-{% if google_enabled %}
-<a class="btn google-btn" href="{% url 'google_login' %}">
-  <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.5l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.3 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.8-6.1C6.5 42.6 14.6 48 24 48z"/></svg>
-  Continue with Google
-</a>
-<div class="auth-divider"><span>or use your email</span></div>
-{% endif %}
-<form method="post" class="form-fields">{% csrf_token %}
-{% if form.non_field_errors %}<div class="auth-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
-<div class="auth-field"><label for="{{ form.login.id_for_label }}">Email address</label>{{ form.login }}{% if form.login.errors %}<div class="auth-field-error">{{ form.login.errors|striptags }}</div>{% endif %}</div>
-<div class="auth-field"><div class="auth-label-row"><label for="{{ form.password.id_for_label }}">Password</label><a href="{% url 'account_reset_password' %}">Forgot password?</a></div>{{ form.password }}{% if form.password.errors %}<div class="auth-field-error">{{ form.password.errors|striptags }}</div>{% endif %}</div>
-{% if form.remember %}<label class="auth-check">{{ form.remember }} <span>Remember me</span></label>{% endif %}
-{% if form.next %}{{ form.next }}{% endif %}
-<button class="btn btn-dark" type="submit">Sign in</button>
-<p class="auth-forgot"><a href="{% url 'account_reset_password' %}">Forgot your password?</a></p>
-</form>
-<p class="text-muted auth-alt">New here? <a href="{% url 'account_signup' %}">Create an account</a></p>
-
+  <span class="auth-kicker">WELCOME BACK</span>
+  <h2>Sign in to your wardrobe</h2>
+  <p class="text-muted">Use your email address and password to access your private wardrobe, outfits, plans and style intelligence.</p>
+  {% if google_enabled %}
+  <a class="btn google-btn" href="{% url 'google_login' %}">Continue with Google</a>
+  <div class="auth-divider"><span>or use your email</span></div>
+  {% endif %}
+  <form method="post" class="form-fields">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="auth-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="auth-field">
+      <label for="{{ form.login.id_for_label }}">Email address</label>
+      {{ form.login }}
+      {% if form.login.errors %}<div class="auth-field-error">{{ form.login.errors|striptags }}</div>{% endif %}
+    </div>
+    <div class="auth-field">
+      <div class="auth-label-row"><label for="{{ form.password.id_for_label }}">Password</label><a href="{% url 'account_reset_password' %}">Forgot password?</a></div>
+      {{ form.password }}
+      {% if form.password.errors %}<div class="auth-field-error">{{ form.password.errors|striptags }}</div>{% endif %}
+    </div>
+    {% if form.remember %}<label class="auth-check">{{ form.remember }} <span>Remember me</span></label>{% endif %}
+    {% if form.next %}{{ form.next }}{% endif %}
+    <button class="btn btn-dark" type="submit">Sign in</button>
+  </form>
+  <p class="text-muted auth-alt">New here? <a href="{% url 'account_signup' %}">Create an account</a></p>
 </div>
 {% endblock %}
