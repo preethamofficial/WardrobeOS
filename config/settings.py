@@ -103,9 +103,10 @@ EMAIL_USE_TLS=flag("EMAIL_USE_TLS",True)
 DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL") or (EMAIL_HOST_USER or "wardrobeos@localhost")
 # Production always uses Django's SMTP backend. DEBUG-only console email keeps
 # local development convenient; Render must provide the SMTP environment vars.
+_SMTP_CONFIGURED=bool(EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
 EMAIL_BACKEND=(
     "django.core.mail.backends.smtp.EmailBackend"
-    if not DEBUG
+    if _SMTP_CONFIGURED
     else "django.core.mail.backends.console.EmailBackend"
 )
 LOGIN_REQUIRED=flag("LOGIN_REQUIRED")
