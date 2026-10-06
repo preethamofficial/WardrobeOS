@@ -75,25 +75,3 @@ def delete_account(request):
     else:
         form = DeleteAccountForm(user=request.user)
     return render(request, "account/delete.html", {"form": form})
-
-
-def verification_sent(request):
-    """Anonymous landing page after signup and for users waiting on verification."""
-    return render(request, "account/verification_sent.html")
-
-
-@require_POST
-def resend_verification(request):
-    """Resend verification without exposing account existence."""
-    email = (request.POST.get("email") or "").strip().lower()
-    address = EmailAddress.objects.filter(
-        email__iexact=email, user__is_active=True
-    ).select_related("user").first()
-    if address and not address.verified:
-        address.send_confirmation(request, signup=False)
-    messages.success(
-        request,
-        "If that email belongs to a WardrobeOS account, a fresh verification email has been sent. "
-        "Check your inbox and spam folder."
-    )
-    return redirect("account_email_verification_sent_landing")
