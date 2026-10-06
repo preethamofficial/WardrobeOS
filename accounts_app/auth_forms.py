@@ -1,6 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 
+from allauth.account.adapter import DefaultAccountAdapter
 from allauth.account.forms import LoginForm
 from allauth.account.models import EmailAddress
 
@@ -28,3 +29,23 @@ class WardrobeLoginForm(LoginForm):
                         ),
                     )
             raise
+
+
+class WardrobeAccountAdapter(DefaultAccountAdapter):
+    """Keep account creation successful when transactional email is unavailable.
+
+    SMTP is an optional deployment dependency. If a provider is temporarily
+    unavailable or credentials are not configured, signup should not become a
+    generic HTTP 500; the account remains usable because verification is
+    configured as optional. Password-reset email still uses the configured
+    SMTP provider when available.
+    """
+
+    def send_confirmation_mail(self, request, emailconfirmation, signup):
+        try:
+            return super().send_confirmation_mail(request, emailconfirmation, signup)
+        except Exception:
+            import logging
+            logging.getLogger("accounts_app").exception(
+                "Verification email could not be sent; signup will continue.")
+            return None
