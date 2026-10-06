@@ -74,37 +74,39 @@ AUTHENTICATION_BACKENDS=[
 SITE_ID=1
 LOGIN_REDIRECT_URL=env("LOGIN_REDIRECT_URL","/")
 LOGOUT_REDIRECT_URL="/"
-# Email-first authentication. Verification is mandatory for password accounts;
-# hosted deployments must provide SMTP so verification and recovery emails reach users.
-# Authentication is email-first: usernames remain an internal Django identifier,
-# but users can no longer sign in with a username. Every password account must
-# provide and verify a unique email address before access is granted.
+# Clean email-first authentication. The application does not expose username
+# login. New accounts must verify their email using a short-lived code before
+# they can sign in.
 ACCOUNT_USER_MODEL_USERNAME_FIELD=None
 ACCOUNT_LOGIN_METHODS={"email"}
 ACCOUNT_SIGNUP_FIELDS=["email*","password1*","password2*"]
-ACCOUNT_EMAIL_VERIFICATION=env("ACCOUNT_EMAIL_VERIFICATION","optional")
+ACCOUNT_EMAIL_VERIFICATION="mandatory"
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED=True
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_TIMEOUT=600
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_MAX_ATTEMPTS=3
+ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND=True
 ACCOUNT_UNIQUE_EMAIL=True
 ACCOUNT_PREVENT_ENUMERATION=True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
-ACCOUNT_CONFIRM_EMAIL_ON_GET=True
-ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS=3
-# After anonymous confirmation, land on the public verification-success page.
-ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL="/accounts/verification-sent/"
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True
-ACCOUNT_FORMS={"login": "accounts_app.auth_forms.WardrobeLoginForm"}
-ACCOUNT_ADAPTER="accounts_app.auth_forms.WardrobeAccountAdapter"
+
+# Password recovery uses an emailed one-time code instead of a reset URL.
+# Codes expire after 10 minutes and are rate/attempt limited by allauth.
+ACCOUNT_PASSWORD_RESET_BY_CODE_ENABLED=True
+ACCOUNT_PASSWORD_RESET_BY_CODE_TIMEOUT=600
+ACCOUNT_PASSWORD_RESET_BY_CODE_MAX_ATTEMPTS=3
+
 SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
-# SMTP (optional). Any provider works; Gmail needs an App Password, and free
-# tiers such as Brevo/Resend/Mailgun SMTP also work. Left unset -> console email.
+
+# SMTP is the production transactional-email transport. Brevo is the selected
+# free-tier provider for verification and password-recovery messages.
 EMAIL_HOST=env("EMAIL_HOST","").strip()
 EMAIL_HOST_USER=env("EMAIL_HOST_USER","").strip()
 EMAIL_HOST_PASSWORD=env("EMAIL_HOST_PASSWORD","").strip()
 EMAIL_PORT=int(env("EMAIL_PORT","587"))
 EMAIL_USE_TLS=flag("EMAIL_USE_TLS",True)
-DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL") or (EMAIL_HOST_USER or "wardrobeos@localhost")
-# Production always uses Django's SMTP backend. DEBUG-only console email keeps
-# local development convenient; Render must provide the SMTP environment vars.
-_SMTP_CONFIGURED=bool(EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL").strip()
+_SMTP_CONFIGURED=bool(EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD and DEFAULT_FROM_EMAIL)
 EMAIL_BACKEND=(
     "django.core.mail.backends.smtp.EmailBackend"
     if _SMTP_CONFIGURED
