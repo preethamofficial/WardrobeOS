@@ -4,4 +4,4 @@ Your WardrobeOS email verification code is:
 
 Enter this 6-digit code in the WardrobeOS browser window. The code expires in 10 minutes.
 
-If you did not request this verification, you can ignore this email.
+If you did not create this account, you can ignore this email.

@@ -72,7 +72,7 @@ class AuthenticationFlowTests(TestCase):
         )
         self.assertEqual(response.status_code, 302)
         self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("Password Reset", mail.outbox[0].subject)
+        self.assertIn("password reset code", mail.outbox[0].subject.lower())
         self.assertIn("password reset", mail.outbox[0].body.lower())
 
 
@@ -84,32 +84,25 @@ class AuthenticationFlowTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Verify your email")
-        self.assertContains(response, "Resend verification email")
+        self.assertContains(response, "Send a new code")
 
     def test_password_reset_page_is_public(self):
         response = self.client.get(reverse("account_reset_password"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Reset your password")
 
-    def test_resend_verification_is_public_and_sends_mail(self):
-        response = self.client.post(
-            reverse("resend_verification"),
-            {"email": self.user.email},
-        )
-        self.assertRedirects(response, "/accounts/verification-sent/")
-        self.assertEqual(len(mail.outbox), 1)
-        self.assertIn("Confirm", mail.outbox[0].subject)
-
-    def test_verification_landing_is_public(self):
+    def test_verification_landing_requires_a_pending_code(self):
+        # The native allauth code view is intentionally session-bound. Without
+        # a pending verification process it redirects to sign-in rather than
+        # exposing an account-enumerating verification page.
         response = self.client.get(reverse("account_email_verification_sent"))
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Verify your email")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response.url)
 
-
-    def test_allauth_verification_landing_is_public(self):
+    def test_confirm_email_route_requires_a_pending_code(self):
         response = self.client.get("/accounts/confirm-email/")
-        self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Verify your email")
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/accounts/login/", response.url)
 
     def test_password_reset_routes_are_public(self):
         response = self.client.get("/accounts/password/reset/")

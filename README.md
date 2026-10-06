@@ -86,8 +86,9 @@ Login methods (all free):
   (locally: `http://127.0.0.1:8000/accounts/google/login/callback/`).
 
 Privacy: Google tokens are never stored (`SOCIALACCOUNT_STORE_TOKENS=False`).
-Email verification is off by default so no SMTP account is needed; you can
-turn it on later with `ACCOUNT_EMAIL_VERIFICATION` + any free SMTP tier.
+Email verification is optional by default so existing accounts can sign in without an
+email-verification dependency. Set `ACCOUNT_EMAIL_VERIFICATION=mandatory` only after
+SMTP verification has been tested successfully.
 
 ## Deploy live for multiple users - $0 options
 
@@ -105,6 +106,8 @@ turn it on later with `ACCOUNT_EMAIL_VERIFICATION` + any free SMTP tier.
    and/or `GROQ_API_KEY` / `GEMINI_API_KEY` / `OPENROUTER_API_KEY` /
    `HUGGINGFACE_API_KEY` for the AI features.
 5. Done - `https://ai-smart-wardrobe-os.onrender.com`.
+
+For a real multi-user deployment, do not use Render's local SQLite/media filesystem. Render's web filesystem is ephemeral. Configure `DATABASE_URL` to a durable PostgreSQL database and enable `USE_OBJECT_STORAGE=True` with an S3-compatible bucket. Supabase provides both PostgreSQL and S3-compatible Storage; copy the database connection string from its Connect panel and the Storage S3 endpoint/credentials from Storage settings. Keep the storage secret key server-side.
 
 Two free-tier behaviours to expect:
 - **Disk is ephemeral.** Uploaded photos and the SQLite DB are wiped on every

@@ -38,10 +38,15 @@ elif SECRET_KEY in ("change-this-in-production","dev-secret") and not DEBUG:
 ALLOWED_HOSTS=[x.strip() for x in env("ALLOWED_HOSTS","127.0.0.1,localhost").split(",") if x.strip()]
 if os.getenv("RENDER_EXTERNAL_HOSTNAME"): ALLOWED_HOSTS.append(os.getenv("RENDER_EXTERNAL_HOSTNAME"))
 CSRF_TRUSTED_ORIGINS=[x.strip() for x in env("CSRF_TRUSTED_ORIGINS","").split(",") if x.strip()]
+if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+    _render_origin=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME').strip()}"
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
 INSTALLED_APPS=[
 "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes","django.contrib.sessions",
 "django.contrib.messages","django.contrib.staticfiles","django.contrib.sites",
 "accounts_app","wardrobe","outfits","planner","laundry",
+"storages",
 "analytics_app","trips","promptlab","styleos",
 "allauth","allauth.account","allauth.socialaccount"]
 # Google Sign-In activates automatically when OAuth keys are configured (free).
@@ -69,38 +74,43 @@ AUTHENTICATION_BACKENDS=[
 SITE_ID=1
 LOGIN_REDIRECT_URL=env("LOGIN_REDIRECT_URL","/")
 LOGOUT_REDIRECT_URL="/"
-# Email-first authentication. Verification is mandatory for password accounts;
-# hosted deployments must provide SMTP so verification and recovery emails reach users.
-# Authentication is email-first: usernames remain an internal Django identifier,
-# but users can no longer sign in with a username. Every password account must
-# provide and verify a unique email address before access is granted.
+# Single authentication implementation: django-allauth owns login, signup,
+# email verification and password recovery. There is no project-specific login
+# form, adapter, SMTP exception suppressor, or verification endpoint.
 ACCOUNT_USER_MODEL_USERNAME_FIELD=None
 ACCOUNT_LOGIN_METHODS={"email"}
 ACCOUNT_SIGNUP_FIELDS=["email*","password1*","password2*"]
 ACCOUNT_EMAIL_VERIFICATION="mandatory"
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_ENABLED=True
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_FORMAT={"numeric":True,"dashed":False,"length":6}
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_TIMEOUT=600
+ACCOUNT_EMAIL_VERIFICATION_BY_CODE_MAX_ATTEMPTS=3
+ACCOUNT_EMAIL_VERIFICATION_SUPPORTS_RESEND=True
 ACCOUNT_UNIQUE_EMAIL=True
 ACCOUNT_PREVENT_ENUMERATION=True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
-ACCOUNT_CONFIRM_EMAIL_ON_GET=True
-ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS=3
-# After anonymous confirmation, land on the public verification-success page.
-ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL="/accounts/verification-sent/"
 ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE=True
-ACCOUNT_FORMS={"login": "accounts_app.auth_forms.WardrobeLoginForm"}
-SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
-# SMTP (optional). Any provider works; Gmail needs an App Password, and free
-# tiers such as Brevo/Resend/Mailgun SMTP also work. Left unset -> console email.
+
+# Password recovery is also a native allauth one-time-code flow.
+ACCOUNT_PASSWORD_RESET_BY_CODE_ENABLED=True
+ACCOUNT_PASSWORD_RESET_BY_CODE_FORMAT={"numeric":True,"dashed":False,"length":6}
+ACCOUNT_PASSWORD_RESET_BY_CODE_TIMEOUT=600
+ACCOUNT_PASSWORD_RESET_BY_CODE_MAX_ATTEMPTS=3
+
+SOCIALACCOUNT_STORE_TOKENS=False
+
+# Transactional email is required for verification and password recovery.
+# Resend provides the SMTP transport; delivery failures are not swallowed.
 EMAIL_HOST=env("EMAIL_HOST","").strip()
 EMAIL_HOST_USER=env("EMAIL_HOST_USER","").strip()
 EMAIL_HOST_PASSWORD=env("EMAIL_HOST_PASSWORD","").strip()
 EMAIL_PORT=int(env("EMAIL_PORT","587"))
 EMAIL_USE_TLS=flag("EMAIL_USE_TLS",True)
-DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL") or (EMAIL_HOST_USER or "wardrobeos@localhost")
-# Production always uses Django's SMTP backend. DEBUG-only console email keeps
-# local development convenient; Render must provide the SMTP environment vars.
+DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL").strip()
+_SMTP_CONFIGURED=bool(EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD and DEFAULT_FROM_EMAIL)
 EMAIL_BACKEND=(
     "django.core.mail.backends.smtp.EmailBackend"
-    if not DEBUG
+    if _SMTP_CONFIGURED
     else "django.core.mail.backends.console.EmailBackend"
 )
 LOGIN_REQUIRED=flag("LOGIN_REQUIRED")
@@ -129,10 +139,30 @@ AUTH_PASSWORD_VALIDATORS=[
 {"NAME":"django.contrib.auth.password_validation.NumericPasswordValidator"}]
 LANGUAGE_CODE="en-us"; TIME_ZONE="Asia/Kolkata"; USE_I18N=True; USE_TZ=True
 STATIC_URL="/static/"; STATICFILES_DIRS=[BASE_DIR/"static"]; STATIC_ROOT=BASE_DIR/"staticfiles"
-STORAGES={"default":{"BACKEND":"django.core.files.storage.FileSystemStorage"},
+MEDIA_URL="/media/"; MEDIA_ROOT=env("MEDIA_ROOT",str(BASE_DIR/"media"))
+
+USE_OBJECT_STORAGE=flag("USE_OBJECT_STORAGE",False)
+if USE_OBJECT_STORAGE:
+    AWS_ACCESS_KEY_ID=env("AWS_ACCESS_KEY_ID").strip()
+    AWS_SECRET_ACCESS_KEY=env("AWS_SECRET_ACCESS_KEY").strip()
+    AWS_STORAGE_BUCKET_NAME=env("AWS_STORAGE_BUCKET_NAME").strip()
+    AWS_S3_ENDPOINT_URL=env("AWS_S3_ENDPOINT_URL").strip()
+    AWS_S3_REGION_NAME=env("AWS_S3_REGION_NAME","us-east-1").strip()
+    if not all((AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_STORAGE_BUCKET_NAME,AWS_S3_ENDPOINT_URL)):
+        raise ImproperlyConfigured("USE_OBJECT_STORAGE=True requires AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_STORAGE_BUCKET_NAME and AWS_S3_ENDPOINT_URL.")
+    AWS_S3_SIGNATURE_VERSION="s3v4"
+    AWS_S3_ADDRESSING_STYLE="path"
+    AWS_DEFAULT_ACL=None
+    AWS_QUERYSTRING_AUTH=True
+    AWS_S3_FILE_OVERWRITE=True
+    AWS_S3_OBJECT_PARAMETERS={"CacheControl":"max-age=86400"}
+    _DEFAULT_STORAGE={"BACKEND":"storages.backends.s3.S3Storage"}
+else:
+    _DEFAULT_STORAGE={"BACKEND":"django.core.files.storage.FileSystemStorage"}
+
+STORAGES={"default":_DEFAULT_STORAGE,
 "staticfiles":{"BACKEND":"whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG
 else "django.contrib.staticfiles.storage.StaticFilesStorage"}}
-MEDIA_URL="/media/"; MEDIA_ROOT=env("MEDIA_ROOT",str(BASE_DIR/"media"))
 # Serve uploads through wardrobe.media_views.serve_media (ownership-checked) in
 # every environment; see config/urls.py. MEDIA_ROOT must be a persistent volume
 # in production, otherwise photos vanish on redeploy.

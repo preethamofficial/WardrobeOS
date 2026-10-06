@@ -15,35 +15,18 @@ from urllib.parse import quote
 from django.conf import settings
 from django.shortcuts import redirect
 
-# The app's own allauth login/signup pages. `/admin/login/` is intentionally
-# absent: the Django admin form is a staff tool, not the branded user login, and
-# pointing ordinary visitors at it looks broken.
 LOGIN_URL = "/accounts/login/"
-SIGNUP_URL = "/accounts/signup/"
 
+# django-allauth owns the complete anonymous authentication lifecycle.
+# Keep /accounts/ public so login, signup, email verification, resend,
+# password reset and code completion can never be trapped by the auth wall.
 ALLOWLIST_PREFIXES = (
     "/admin/login/",
     "/accounts/",
-    "/accounts/google/",
-    "/accounts/3rdparty/",
     "/static/",
     "/health/",
     "/api/health/",
 )
-
-# Keep account recovery and email verification explicitly public. The broad
-# /accounts/ rule is intentional, but these paths are listed separately so a
-# future tightening of account routes cannot reintroduce a recovery loop.
-PUBLIC_AUTH_PATHS = {
-    "/accounts/login/",
-    "/accounts/signup/",
-    "/accounts/confirm-email/",
-    "/accounts/password/reset/",
-    "/accounts/password/reset/done/",
-    "/accounts/password/reset/key/done/",
-    "/accounts/verification-sent/",
-    "/accounts/resend-verification/",
-}
 
 
 class LoginRequiredMiddleware:
@@ -54,7 +37,7 @@ class LoginRequiredMiddleware:
         # Set security headers even when this middleware returns an early auth redirect.
         if getattr(settings, "LOGIN_REQUIRED", False) and not request.user.is_authenticated:
             path = request.path
-            if path not in PUBLIC_AUTH_PATHS and not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
+            if not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
                 return self._security_response(
                     redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
                 )
