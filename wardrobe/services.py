@@ -57,6 +57,14 @@ def _refresh_thumbnail(item, local_path):
 def _save_processed_image(item, local_path):
     """Upload the enhanced local copy through Django storage."""
     stored_name = item.image.name
+    # Reuse the existing storage key so enhancement does not create a second
+    # random filename. Django storage renames an existing filename by default;
+    # deleting first keeps the model reference stable for local and S3 storage.
+    try:
+        if default_storage.exists(stored_name):
+            default_storage.delete(stored_name)
+    except Exception:
+        log.warning("Could not replace existing image %s cleanly", stored_name, exc_info=True)
     with open(local_path, "rb") as source:
         item.image.save(stored_name, File(source), save=False)
 
