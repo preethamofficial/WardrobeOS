@@ -130,9 +130,6 @@ AUTH_PASSWORD_VALIDATORS=[
 {"NAME":"django.contrib.auth.password_validation.NumericPasswordValidator"}]
 LANGUAGE_CODE="en-us"; TIME_ZONE="Asia/Kolkata"; USE_I18N=True; USE_TZ=True
 STATIC_URL="/static/"; STATICFILES_DIRS=[BASE_DIR/"static"]; STATIC_ROOT=BASE_DIR/"staticfiles"
-STORAGES={"default":_DEFAULT_STORAGE,
-"staticfiles":{"BACKEND":"whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG
-else "django.contrib.staticfiles.storage.StaticFilesStorage"}}
 MEDIA_URL="/media/"; MEDIA_ROOT=env("MEDIA_ROOT",str(BASE_DIR/"media"))
 
 USE_OBJECT_STORAGE=flag("USE_OBJECT_STORAGE",False)
@@ -153,6 +150,10 @@ if USE_OBJECT_STORAGE:
     _DEFAULT_STORAGE={"BACKEND":"storages.backends.s3.S3Storage"}
 else:
     _DEFAULT_STORAGE={"BACKEND":"django.core.files.storage.FileSystemStorage"}
+
+STORAGES={"default":_DEFAULT_STORAGE,
+"staticfiles":{"BACKEND":"whitenoise.storage.CompressedManifestStaticFilesStorage" if not DEBUG
+else "django.contrib.staticfiles.storage.StaticFilesStorage"}}
 # Serve uploads through wardrobe.media_views.serve_media (ownership-checked) in
 # every environment; see config/urls.py. MEDIA_ROOT must be a persistent volume
 # in production, otherwise photos vanish on redeploy.
