@@ -38,6 +38,10 @@ elif SECRET_KEY in ("change-this-in-production","dev-secret") and not DEBUG:
 ALLOWED_HOSTS=[x.strip() for x in env("ALLOWED_HOSTS","127.0.0.1,localhost").split(",") if x.strip()]
 if os.getenv("RENDER_EXTERNAL_HOSTNAME"): ALLOWED_HOSTS.append(os.getenv("RENDER_EXTERNAL_HOSTNAME"))
 CSRF_TRUSTED_ORIGINS=[x.strip() for x in env("CSRF_TRUSTED_ORIGINS","").split(",") if x.strip()]
+if os.getenv("RENDER_EXTERNAL_HOSTNAME"):
+    _render_origin=f"https://{os.getenv('RENDER_EXTERNAL_HOSTNAME').strip()}"
+    if _render_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(_render_origin)
 INSTALLED_APPS=[
 "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes","django.contrib.sessions",
 "django.contrib.messages","django.contrib.staticfiles","django.contrib.sites",
