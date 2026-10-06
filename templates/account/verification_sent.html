@@ -4,10 +4,10 @@
 {% block content %}
 <div class="auth-form-card">
   <span class="auth-kicker">VERIFY YOUR EMAIL</span>
-  <h2>Enter the verification code</h2>
-  <p class="text-muted">We’ve sent a one-time verification code to your email address. The code expires shortly for your security.</p>
-  <a class="btn btn-dark" href="{% url 'account_confirm_email_verification_code' %}">Enter verification code</a>
-  <p class="text-muted auth-alt">Didn’t receive the code? You can request a new code from the verification screen.</p>
+  <h2>Check your inbox</h2>
+  <p class="text-muted">We sent a verification code to your email address. Enter the code from the message to activate your WardrobeOS account.</p>
+  <a class="btn btn-dark" href="{% url 'account_email_verification_sent' %}">Enter verification code</a>
+  <p class="text-muted auth-alt">The code expires in 10 minutes and can only be tried a limited number of times.</p>
   <p class="text-muted auth-alt">Already verified? <a href="{% url 'account_login' %}">Sign in</a></p>
 </div>
 {% endblock %}
