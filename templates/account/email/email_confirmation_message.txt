@@ -1,13 +1,7 @@
-Hello {{ user_display }},
+Your WardrobeOS email verification code is:
 
-Thanks for creating your WardrobeOS account.
+{{ code }}
 
-Please verify this email address by opening the secure link below:
+Enter this 6-digit code in the WardrobeOS browser window. The code expires in 10 minutes.
 
-{{ activate_url }}
-
-This link expires in {{ expiration_days }} days.
-
-If you did not create this account, you can ignore this email.
-
-WardrobeOS — Personal Style Intelligence
+If you did not request this verification, you can ignore this email.
