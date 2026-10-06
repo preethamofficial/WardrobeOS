@@ -37,7 +37,7 @@ class LoginRequiredMiddleware:
         # Set security headers even when this middleware returns an early auth redirect.
         if getattr(settings, "LOGIN_REQUIRED", False) and not request.user.is_authenticated:
             path = request.path
-            if path not in PUBLIC_AUTH_PATHS and not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
+            if not any(path.startswith(p) for p in ALLOWLIST_PREFIXES):
                 return self._security_response(
                     redirect(f"{LOGIN_URL}?next={quote(path, safe='/')}")
                 )
