@@ -1,0 +1,30 @@
+{% extends "account/auth_base.html" %}
+{% load i18n %}
+{% block title %}Verify your email · WardrobeOS{% endblock %}
+{% block content %}
+<div class="auth-form-card">
+  <span class="auth-kicker">EMAIL VERIFICATION</span>
+  <h2>Verify your email</h2>
+  <p class="text-muted">Enter the verification code we sent to <strong>{{ email }}</strong>.</p>
+  <form method="post" class="form-fields">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="auth-form-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    <div class="auth-field">
+      <label for="{{ form.code.id_for_label }}">Verification code</label>
+      {{ form.code }}
+      {% if form.code.errors %}<div class="auth-field-error">{{ form.code.errors|striptags }}</div>{% endif %}
+    </div>
+    <button class="btn btn-dark" type="submit" name="action" value="verify">Verify email</button>
+  </form>
+  {% if can_resend %}
+  <form method="post" class="form-fields auth-secondary-form">
+    {% csrf_token %}
+    <button class="btn btn-light" type="submit" name="action" value="resend">Send a new code</button>
+  </form>
+  {% endif %}
+  {% if can_change %}
+  <p class="text-muted auth-alt">Wrong email? You can change it before verification.</p>
+  {% endif %}
+  <p class="text-muted auth-alt"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+</div>
+{% endblock %}
