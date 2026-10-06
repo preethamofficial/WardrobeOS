@@ -78,7 +78,7 @@ def analyse_item(item, *, auto_color=True):
         _save_processed_image(item, local_path)
         _refresh_thumbnail(item, local_path)
         analysis = analyze_clothing(local_path)
-        palette = analysis.get("palette") or extract_palette(item.image.path)
+        palette = analysis.get("palette") or extract_palette(local_path)
         item.palette = palette
         if palette:
             item.color_family = (palette[0].get("family") or "").strip() or item.color_family
