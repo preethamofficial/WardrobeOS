@@ -42,6 +42,7 @@ INSTALLED_APPS=[
 "django.contrib.admin","django.contrib.auth","django.contrib.contenttypes","django.contrib.sessions",
 "django.contrib.messages","django.contrib.staticfiles","django.contrib.sites",
 "accounts_app","wardrobe","outfits","planner","laundry",
+"storages",
 "analytics_app","trips","promptlab","styleos",
 "allauth","allauth.account","allauth.socialaccount"]
 # Google Sign-In activates automatically when OAuth keys are configured (free).
@@ -77,7 +78,7 @@ LOGOUT_REDIRECT_URL="/"
 ACCOUNT_USER_MODEL_USERNAME_FIELD=None
 ACCOUNT_LOGIN_METHODS={"email"}
 ACCOUNT_SIGNUP_FIELDS=["email*","password1*","password2*"]
-ACCOUNT_EMAIL_VERIFICATION="mandatory"
+ACCOUNT_EMAIL_VERIFICATION=env("ACCOUNT_EMAIL_VERIFICATION","optional")
 ACCOUNT_UNIQUE_EMAIL=True
 ACCOUNT_PREVENT_ENUMERATION=True
 ACCOUNT_LOGIN_ON_PASSWORD_RESET=False
