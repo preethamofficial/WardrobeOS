@@ -74,16 +74,14 @@ services:
         sync: false
       - key: LOG_LEVEL
         value: "INFO"
-      # Account verification and password reset require a real SMTP provider.
-      # Add these secret values in the Render dashboard; never commit credentials.
-      # Brevo provides a free SMTP relay tier (300 emails/day). Add the SMTP
-      # login/key and a verified sender in the Render dashboard; never commit them.
+      # Resend SMTP is used for mandatory email verification and password-reset codes.
+      # Keep the API credential and sender address in Render secrets.
       - key: EMAIL_HOST
-        value: "smtp-relay.brevo.com"
+        value: "smtp.resend.com"
       - key: EMAIL_PORT
         value: "587"
       - key: EMAIL_HOST_USER
-        sync: false
+        value: "resend"
       - key: EMAIL_HOST_PASSWORD
         sync: false
       - key: EMAIL_USE_TLS
