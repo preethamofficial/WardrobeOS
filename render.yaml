@@ -5,9 +5,8 @@
 # - A loaded worker measures ~53 MB, so two workers plus request buffers stay
 #   comfortably inside the memory budget. Threads are 2 (not 4) to leave headroom
 #   for a photo upload being processed in memory.
-# - Disk is EPHEMERAL: uploaded photos + SQLite DB reset on every redeploy and
-#   restart. Fine for a demo; use PythonAnywhere (see README) or a paid
-#   disk/Postgres for permanent storage.
+# - The web filesystem is EPHEMERAL. Hosted data therefore uses external
+#   PostgreSQL plus S3-compatible object storage.
 # - Instances sleep when idle and cold-start slowly, so the health check points
 #   at the cheap /health/ endpoint rather than the full dashboard.
 # - `migrate` is NOT run at build time on purpose: the build container has its
@@ -56,6 +55,23 @@ services:
         value: "True"
       - key: LOGIN_REQUIRED
         value: "True"
+      - key: ACCOUNT_EMAIL_VERIFICATION
+        value: "optional"
+      # Durable production database and object storage. Set these in Render.
+      - key: DATABASE_URL
+        sync: false
+      - key: USE_OBJECT_STORAGE
+        value: "True"
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_ENDPOINT_URL
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        sync: false
       - key: LOG_LEVEL
         value: "INFO"
       # Account verification and password reset require a real SMTP provider.
