@@ -2,7 +2,7 @@
 # Installed versions recorded on Windows/Python 3.12 with Django 5.2.
 # Upgrade deliberately: bump a pin, then run `manage.py test` and commit the result.
 Django==5.2.17
-Pillow==12.3.0
+Pillow==13.0.0
 requests==2.34.2
 python-dotenv==1.2.3
 django-allauth==65.19.4
@@ -13,10 +13,10 @@ psycopg2-binary==2.9.13
 # Transitive pins that matter for reproducibility:
 asgiref==3.12.1
 sqlparse==0.6.0
-certifi==2026.7.22
+certifi==2026.10.19
 charset-normalizer==3.5.1
 idna==3.19
-urllib3==2.7.0
+urllib3==2.8.0
 tzdata==2026.4
 # Parses render.yaml in the test suite, so CI validates the deploy config too.
 PyYAML==6.0.3
