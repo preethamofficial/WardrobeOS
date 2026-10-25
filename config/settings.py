@@ -90,12 +90,16 @@ ACCOUNT_FORMS={"login": "accounts_app.auth_forms.WardrobeLoginForm"}
 SOCIALACCOUNT_STORE_TOKENS=False  # privacy-first: never store Google tokens
 # SMTP (optional). Any provider works; Gmail needs an App Password, and free
 # tiers such as Brevo/Resend/Mailgun SMTP also work. Left unset -> console email.
-EMAIL_HOST=env("EMAIL_HOST","").strip()
+# Gmail SMTP is the production-friendly default; credentials must be supplied
+# via Render environment variables and are never stored in source control.
+# An explicitly blank EMAIL_HOST also falls back to Gmail instead of creating
+# smtplib.SMTP("", port), which fails with SMTPServerDisconnected during send.
+EMAIL_HOST=env("EMAIL_HOST","smtp.gmail.com").strip() or "smtp.gmail.com"
 EMAIL_HOST_USER=env("EMAIL_HOST_USER","").strip()
 EMAIL_HOST_PASSWORD=env("EMAIL_HOST_PASSWORD","").strip()
 EMAIL_PORT=int(env("EMAIL_PORT","587"))
 EMAIL_USE_TLS=flag("EMAIL_USE_TLS",True)
-DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL") or (EMAIL_HOST_USER or "wardrobeos@localhost")
+DEFAULT_FROM_EMAIL=env("DEFAULT_FROM_EMAIL").strip() or EMAIL_HOST_USER or "wardrobeos@localhost"
 # Production always uses Django's SMTP backend. DEBUG-only console email keeps
 # local development convenient; Render must provide the SMTP environment vars.
 EMAIL_BACKEND=(
