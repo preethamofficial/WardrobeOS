@@ -75,7 +75,6 @@ class AuthenticationFlowTests(TestCase):
         self.assertIn("Password Reset", mail.outbox[0].subject)
         self.assertIn("password reset", mail.outbox[0].body.lower())
 
-
     def test_unverified_correct_password_shows_verification_guidance(self):
         response = self.client.post(
             reverse("account_login"),
@@ -83,8 +82,19 @@ class AuthenticationFlowTests(TestCase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Verify your email")
-        self.assertContains(response, "Resend verification email")
+        self.assertContains(response, "Your password is correct")
+        self.assertContains(response, "not verified yet")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_incorrect_password_does_not_reveal_verification_state(self):
+        response = self.client.post(
+            reverse("account_login"),
+            {"login": self.user.email, "password": "DefinitelyWrong123!"},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, "Your password is correct")
+        self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_password_reset_page_is_public(self):
         response = self.client.get(reverse("account_reset_password"))
@@ -104,7 +114,6 @@ class AuthenticationFlowTests(TestCase):
         response = self.client.get(reverse("account_email_verification_sent"))
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Verify your email")
-
 
     def test_allauth_verification_landing_is_public(self):
         response = self.client.get("/accounts/confirm-email/")
