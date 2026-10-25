@@ -82,8 +82,10 @@ class AuthenticationFlowTests(TestCase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "Your password is correct")
-        self.assertContains(response, "not verified yet")
+        # allauth redirects mandatory-verification sign-ins to the verification
+        # landing page, which is the user-facing guidance for this flow.
+        self.assertContains(response, "Verify your email")
+        self.assertContains(response, "Resend verification email")
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_incorrect_password_does_not_reveal_verification_state(self):
